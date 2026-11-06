@@ -1,0 +1,8 @@
+/target
+/dist
+/src-tauri/target
+/src-tauri/gen
+/src-tauri/icons
+*.jks
+*.keystore
+*.apk
