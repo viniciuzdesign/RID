@@ -1,39 +1,55 @@
 use leptos::prelude::*;
 use leptos::task::spawn_local;
-use wasm_bindgen::prelude::*;
 
-#[wasm_bindgen]
-extern "C" {
-    #[wasm_bindgen(js_namespace = ["window", "__TAURI__", "core"], catch)]
-    async fn invoke(cmd: &str, args: JsValue) -> Result<JsValue, JsValue>;
-}
+use crate::api::{self, Config};
+use crate::telas::{configuracoes::Configuracoes, pendentes::Pendentes};
 
-async fn versao_do_nucleo() -> String {
-    match invoke("versao", JsValue::NULL).await {
-        Ok(valor) => valor.as_string().unwrap_or_else(|| "resposta inválida".into()),
-        Err(erro) => format!("erro: {:?}", erro),
-    }
+#[derive(Clone, Copy, PartialEq)]
+pub enum Tela {
+    Pendentes,
+    Configuracoes,
 }
 
 #[component]
 pub fn App() -> impl IntoView {
-    let (status, set_status) = signal(String::new());
+    let tela = RwSignal::new(Tela::Pendentes);
+    let config = RwSignal::new(Config::default());
+    let carregado = RwSignal::new(false);
+    let erro = RwSignal::new(None::<String>);
 
-    let testar = move |_| {
-        spawn_local(async move {
-            set_status.set(versao_do_nucleo().await);
-        });
-    };
+    spawn_local(async move {
+        match api::obter_config().await {
+            Ok(c) => {
+                if c.nome.is_empty() {
+                    tela.set(Tela::Configuracoes);
+                }
+                config.set(c);
+            }
+            Err(e) => erro.set(Some(e)),
+        }
+        carregado.set(true);
+    });
 
     view! {
-        <header class="topo">"RID"</header>
-        <main class="conteudo">
-            <section class="cartao">
-                <p>"Etapa 1: o app foi instalado e a interface está funcionando."</p>
-                <p>"Toque no botão para testar a comunicação com o núcleo em Rust."</p>
-            </section>
-            <button class="botao" on:click=testar>"Testar núcleo"</button>
-            <p class="ok">{move || status.get()}</p>
-        </main>
+        <header class="topo">
+            <span>"RID"</span>
+            <button
+                class="icone"
+                aria-label="Configurações"
+                on:click=move |_| tela.set(Tela::Configuracoes)
+            >
+                "⚙"
+            </button>
+        </header>
+        {move || erro.get().map(|e| view! { <p class="erro conteudo">{e}</p> })}
+        <Show
+            when=move || carregado.get()
+            fallback=|| view! { <p class="conteudo">"Carregando…"</p> }
+        >
+            {move || match tela.get() {
+                Tela::Pendentes => view! { <Pendentes /> }.into_any(),
+                Tela::Configuracoes => view! { <Configuracoes config=config tela=tela /> }.into_any(),
+            }}
+        </Show>
     }
 }

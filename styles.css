@@ -22,9 +22,76 @@ body {
 .topo {
   background: var(--verde);
   color: #fff;
-  padding: 16px 20px;
+  padding: 12px 12px 12px 20px;
   font-size: 1.25rem;
   font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.icone {
+  background: transparent;
+  border: none;
+  color: #fff;
+  font-size: 1.5rem;
+  width: 44px;
+  height: 44px;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.formulario label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.formulario input {
+  font-size: 1rem;
+  padding: 12px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--texto);
+}
+
+.formulario input:focus {
+  outline: 2px solid var(--verde);
+  border-color: var(--verde);
+}
+
+.aviso {
+  background: #fef3c7;
+  border-left: 4px solid var(--ambar);
+  padding: 10px 12px;
+  margin: 0;
+  border-radius: 6px;
+}
+
+.erro {
+  color: #b91c1c;
+  font-weight: 600;
+}
+
+.discreto {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.vazio {
+  text-align: center;
 }
 
 .conteudo {
@@ -54,6 +121,16 @@ body {
 
 .botao:active {
   background: var(--verde-escuro);
+}
+
+.botao:disabled {
+  opacity: 0.6;
+}
+
+.botao.secundario {
+  background: #fff;
+  color: var(--verde);
+  border: 1px solid var(--verde);
 }
 
 .ok {
