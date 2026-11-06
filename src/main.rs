@@ -1,5 +1,6 @@
 mod api;
 mod app;
+mod util;
 mod telas;
 
 fn main() {

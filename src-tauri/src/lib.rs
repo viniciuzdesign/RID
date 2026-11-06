@@ -1,5 +1,8 @@
+mod chave;
+mod cidade;
 mod cpf;
 mod db;
+mod valor;
 
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
@@ -61,9 +64,86 @@ fn salvar_config(estado: State<Estado>, config: Config) -> Result<Config, String
     Ok(salvo)
 }
 
+#[derive(Serialize)]
+pub struct Analise {
+    chave: String,
+    cnpj: String,
+    existente: Option<db::Lancamento>,
+}
+
+#[tauri::command]
+fn analisar_qrcode(estado: State<Estado>, conteudo: String) -> Result<Analise, String> {
+    let chave = chave::extrair(&conteudo)
+        .ok_or("Este QR Code não contém uma chave de cupom fiscal válida.")?;
+    let conn = estado.db.lock().map_err(|_| "Banco indisponível".to_string())?;
+    let existente = db::buscar_por_chave(&conn, &chave).map_err(erro_banco)?;
+    Ok(Analise {
+        cnpj: chave::cnpj(&chave),
+        chave,
+        existente,
+    })
+}
+
+#[tauri::command]
+async fn buscar_cidade(cnpj: String) -> Result<String, String> {
+    cidade::buscar(&cnpj).await
+}
+
+#[derive(Deserialize)]
+pub struct NovoLancamento {
+    chave: String,
+    data: String,
+    cidade: String,
+    valor: String,
+}
+
+fn data_valida(data: &str) -> bool {
+    let b = data.as_bytes();
+    b.len() == 10
+        && b[4] == b'-'
+        && b[7] == b'-'
+        && b.iter()
+            .enumerate()
+            .all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit())
+}
+
+fn normalizar_cidade(cidade: &str) -> Result<String, String> {
+    let cidade = cidade.split_whitespace().collect::<Vec<_>>().join(" ").to_uppercase();
+    if cidade.is_empty() {
+        Err("Informe a cidade.".into())
+    } else {
+        Ok(cidade)
+    }
+}
+
+#[tauri::command]
+fn criar_lancamento(estado: State<Estado>, novo: NovoLancamento) -> Result<db::Lancamento, String> {
+    let chave = novo.chave.trim().to_ascii_uppercase();
+    if !chave::valida(&chave) {
+        return Err("Chave de acesso inválida.".into());
+    }
+    if !data_valida(&novo.data) {
+        return Err("Data inválida.".into());
+    }
+    let cidade = normalizar_cidade(&novo.cidade)?;
+    let centavos = valor::para_centavos(&novo.valor)?;
+    let conn = estado.db.lock().map_err(|_| "Banco indisponível".to_string())?;
+    db::inserir(&conn, &chave, &novo.data, &cidade, centavos).map_err(erro_banco)
+}
+
+#[tauri::command]
+fn listar_pendentes(estado: State<Estado>) -> Result<Vec<db::Lancamento>, String> {
+    let conn = estado.db.lock().map_err(|_| "Banco indisponível".to_string())?;
+    db::listar(&conn, false).map_err(erro_banco)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let construtor = tauri::Builder::default();
+    #[cfg(mobile)]
+    let construtor = construtor.plugin(tauri_plugin_barcode_scanner::init());
+
+    construtor
         .setup(|app| {
             let pasta = app.path().app_data_dir()?;
             std::fs::create_dir_all(&pasta)?;
@@ -73,7 +153,14 @@ pub fn run() {
             });
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![obter_config, salvar_config])
+        .invoke_handler(tauri::generate_handler![
+            obter_config,
+            salvar_config,
+            analisar_qrcode,
+            buscar_cidade,
+            criar_lancamento,
+            listar_pendentes
+        ])
         .run(tauri::generate_context!())
         .expect("erro ao iniciar o RID");
 }

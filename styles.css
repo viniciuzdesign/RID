@@ -137,3 +137,135 @@ h2 {
   color: var(--verde);
   font-weight: 600;
 }
+
+/* ---------- Lista de pendentes ---------- */
+
+.com-rodape {
+  padding-bottom: 110px;
+}
+
+.rodape {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--fundo) 70%, transparent);
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.05rem;
+}
+
+.total strong {
+  font-size: 1.3rem;
+  color: var(--verde);
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.item {
+  background: #fff;
+  border: 1px solid var(--borda);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.item-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.valor {
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+/* ---------- Novo lançamento ---------- */
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rotulo {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.chave {
+  font-family: ui-monospace, "Roboto Mono", monospace;
+  font-size: 0.85rem;
+  color: #4b5563;
+  word-break: break-word;
+}
+
+/* ---------- Leitura do QR Code (câmera atrás da página) ---------- */
+
+:root:has(.escaneando),
+:root:has(.escaneando) body {
+  background: transparent !important;
+}
+
+:root:has(.escaneando) .topo {
+  display: none;
+}
+
+.escaneando {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(40px + env(safe-area-inset-top)) 24px calc(32px + env(safe-area-inset-bottom));
+  background: transparent;
+}
+
+.dica {
+  color: #fff;
+  background: rgba(0, 0, 0, 0.55);
+  padding: 10px 16px;
+  border-radius: 999px;
+  margin: 0;
+  text-align: center;
+}
+
+.mira {
+  width: 70vw;
+  height: 70vw;
+  max-width: 320px;
+  max-height: 320px;
+  border: 3px solid #fff;
+  border-radius: 18px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.35);
+}
+
+.cancelar-leitura {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid #fff;
+  max-width: 320px;
+}
