@@ -77,6 +77,7 @@ Total: R$ 60,50
 - Comandos de permissão do plugin são `plugin:barcode-scanner|check_permissions` e `plugin:barcode-scanner|request_permissions` (snake_case). Com camelCase o ACL do Tauri bloqueia.
 - O `wasm-opt` do Trunk falha com Rust recente (bulk memory): `index.html` usa `data-wasm-opt-params="--all-features"`.
 - Para atualizar com estado assíncrono após trocar de tela, usar `try_set` nos sinais do Leptos.
+- **R8 desligado no release.** O template do Tauri liga a otimização R8, que removia classes do ML Kit (leitor de QR Code) e causava erro "getClass() on a null object reference" seguido de fechamento do app. O workflow troca `enable = true` por `enable = false` em `gen/android/app/build.gradle.kts` logo após o `android init`. Não religar.
 
 ## Build e publicação
 - Não há build local. O workflow `.github/workflows/android.yml` roda a cada push na `main`: instala Rust/Java/NDK, `cargo tauri android init`, `cargo tauri icon`, compila APK `aarch64`, assina com `apksigner` e publica em **Releases** (`build-N/RID.apk`).
@@ -84,10 +85,14 @@ Total: R$ 60,50
 - A cada versão, aumentar `version` em `Cargo.toml`, `src-tauri/Cargo.toml` e `src-tauri/tauri.conf.json` (o versionCode do Android deriva dela).
 - Testes de unidade do núcleo: `cpf.rs`, `chave.rs` e `valor.rs` não dependem de crates e podem ser testados com `rustc --edition 2021 --test <arquivo>`.
 
-## Estado atual (versão 0.3.1)
+## Teste automático no emulador
+- Branch `diagnostico` + `.github/workflows/diagnostico.yml`: compila o APK x86_64, sobe um emulador Android 15 e executa `ci/diagnostico.sh` (preenche configurações pelo teclado, toca em Lançar cupom, aceita a permissão da câmera). Imprime prints (base64 gzip entre `PRINT_INICIO`/`PRINT_FIM`) e o log do app.
+- Para validar uma mudança antes de liberar ao usuário: fazer push dela na branch `diagnostico`.
+
+## Estado atual (versão 0.3.2)
 - [x] Etapa 1 — Esqueleto Tauri + Leptos e build automático (testado no celular).
 - [x] Etapa 2 — Banco SQLite e Configurações (testado no celular).
-- [~] Etapa 3 — Lançamento por QR Code, cidade automática, valor, aviso de repetido. A 0.3.0 falhou no celular por nomes errados dos comandos de permissão; corrigido na 0.3.1, **ainda não testado no celular**.
+- [~] Etapa 3 — Lançamento por QR Code, cidade automática, valor, aviso de repetido. 0.3.0: nomes errados dos comandos de permissão. 0.3.1: R8 quebrava o ML Kit. 0.3.2: corrigido e validado no emulador até a câmera aberta; **falta testar a leitura de um cupom real no celular**.
 - [ ] Etapa 4 — Pendentes agrupados por semana (seg–dom) com acumulados e total; editar, excluir, excluir em lote por período.
 - [ ] Etapa 5 — Arquivar em lote por período; aba Arquivados (editar, excluir, desarquivar).
 - [ ] Etapa 6 — Exportação para a área de transferência no modelo acima (usar `tauri-plugin-clipboard-manager`).
