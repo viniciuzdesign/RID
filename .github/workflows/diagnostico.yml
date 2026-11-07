@@ -46,6 +46,12 @@ jobs:
         run: |
           cargo tauri android init --ci
           cargo tauri icon src-tauri/app-icon.png
+          GRADLE=src-tauri/gen/android/app/build.gradle.kts
+          sed -i 's/enable = true/enable = false/' "$GRADLE"
+          if grep -q "enable = true" "$GRADLE" || ! grep -q "enable = false" "$GRADLE"; then
+            echo "::error::Não consegui desligar o R8 em $GRADLE"; exit 1
+          fi
+          echo "R8 desligado:"; grep -n -B2 -A1 "enable = false" "$GRADLE"
 
       - name: Compilar APK de release (x86_64, igual ao do celular)
         run: cargo tauri android build --apk --target x86_64 --ci
@@ -69,7 +75,7 @@ jobs:
       - name: Rodar no emulador
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 34
+          api-level: 35
           arch: x86_64
           target: google_apis
           disable-animations: true

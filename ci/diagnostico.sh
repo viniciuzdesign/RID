@@ -58,8 +58,14 @@ $UI dump
 passo "O app ainda está aberto?"
 adb shell pidof "$PKG" && echo "SIM, processo vivo" || echo "NAO, o app fechou"
 
+passo "Componentes do ML Kit quebrados pelo R8 (deve ser 0)"
+adb logcat -d | grep -c "Could not instantiate com.google.mlkit" || true
+
+passo "Console da página (chromium)"
+adb logcat -d -v brief | grep -i "chromium\|Console" | tail -40
+
 passo "Log do processo do app"
-adb logcat -d -v threadtime | awk -v pid="$PID" '$3 == pid' | grep -v "EGL_emulation\|eglCodecCommon\|HostConnection\|gralloc" | tail -300
+adb logcat -d -v threadtime | awk -v pid="$PID" '$3 == pid' | grep -v "EGL_emulation\|eglCodecCommon\|HostConnection\|gralloc" | grep -v ComponentDiscovery | tail -150
 
 passo "Crashes"
 adb logcat -d -b crash -v threadtime | tail -80
