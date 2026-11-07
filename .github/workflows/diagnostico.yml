@@ -8,7 +8,7 @@ on:
 jobs:
   emulador:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
+    timeout-minutes: 60
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -86,4 +86,4 @@ jobs:
           target: google_apis
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -no-snapshot -noaudio -no-boot-anim -camera-back emulated
-          script: bash ci/diagnostico.sh diag.apk
+          script: python3 ci/teste.py diag.apk
