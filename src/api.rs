@@ -116,10 +116,10 @@ pub const LEITURA_CANCELADA: &str = "cancelled";
 
 /// Pede permissão da câmera (se preciso) e lê um QR Code.
 pub async fn ler_qrcode() -> Result<String, String> {
-    let atual: Permissoes = chamar("plugin:barcode-scanner|checkPermissions", &()).await?;
+    let atual: Permissoes = chamar("plugin:barcode-scanner|check_permissions", &()).await?;
     if atual.camera != "granted" {
         let pedida: Permissoes =
-            chamar("plugin:barcode-scanner|requestPermissions", &()).await?;
+            chamar("plugin:barcode-scanner|request_permissions", &()).await?;
         if pedida.camera != "granted" {
             return Err(
                 "Sem permissão para usar a câmera. Libere a câmera para o RID nas configurações do Android."
