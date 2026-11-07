@@ -57,7 +57,7 @@ def conectar():
             try:
                 paginas = json.load(urllib.request.urlopen("http://127.0.0.1:9222/json", timeout=5))
                 pagina = next(p for p in paginas if p.get("type") == "page")
-                return websocket.create_connection(pagina["webSocketDebuggerUrl"], timeout=20)
+                return websocket.create_connection(pagina["webSocketDebuggerUrl"], timeout=20, suppress_origin=True)
             except Exception as e:  # noqa: BLE001
                 print("aguardando depurador:", e, file=sys.stderr)
         time.sleep(2)
