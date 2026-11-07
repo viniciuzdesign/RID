@@ -69,6 +69,15 @@ jobs:
           "$BT/apksigner" sign --ks tmp.p12 --ks-type PKCS12 --ks-key-alias tmp \
             --ks-pass pass:senha123 --key-pass pass:senha123 --out diag.apk alinhado.apk
 
+      - name: Conferir APIs de cidade
+        run: |
+          echo "--- BrasilAPI ---"
+          curl -sS -m 15 -w "\nHTTP %{http_code}\n" https://brasilapi.com.br/api/cnpj/v1/00000000000191 | cut -c1-700
+          echo "--- IBGE (DF) ---"
+          curl -sS -m 15 -w "\nHTTP %{http_code}\n" -D - https://servicodados.ibge.gov.br/api/v1/localidades/estados/DF/municipios | cut -c1-400
+          echo "--- ReceitaWS ---"
+          curl -sS -m 15 -w "\nHTTP %{http_code}\n" https://receitaws.com.br/v1/cnpj/00000000000191 | cut -c1-300
+
       - name: Instalar cliente WebSocket (para o roteiro)
         run: pip install websocket-client
 
