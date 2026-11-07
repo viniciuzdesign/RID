@@ -3,11 +3,13 @@ mod cidade;
 mod cpf;
 mod datas;
 mod db;
+mod relatorio;
 mod valor;
 
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-use tauri::{Manager, State};
+use tauri::{AppHandle, Manager, State};
+use tauri_plugin_clipboard_manager::ClipboardExt;
 
 pub struct Estado {
     db: Mutex<rusqlite::Connection>,
@@ -217,6 +219,84 @@ fn excluir_periodo(estado: State<Estado>, inicio: String, fim: String) -> Result
 }
 
 #[tauri::command]
+fn arquivar_periodo(estado: State<Estado>, inicio: String, fim: String) -> Result<usize, String> {
+    validar_periodo(&inicio, &fim)?;
+    let conn = banco(&estado)?;
+    db::arquivar_periodo(&conn, &inicio, &fim, true).map_err(erro_banco)
+}
+
+#[tauri::command]
+fn desarquivar_periodo(estado: State<Estado>, inicio: String, fim: String) -> Result<usize, String> {
+    validar_periodo(&inicio, &fim)?;
+    let conn = banco(&estado)?;
+    db::arquivar_periodo(&conn, &inicio, &fim, false).map_err(erro_banco)
+}
+
+#[tauri::command]
+fn definir_arquivado(estado: State<Estado>, id: i64, arquivado: bool) -> Result<(), String> {
+    let conn = banco(&estado)?;
+    db::definir_arquivado(&conn, id, arquivado).map_err(erro_banco)?;
+    Ok(())
+}
+
+#[tauri::command]
+fn listar_arquivados(estado: State<Estado>) -> Result<Vec<db::Lancamento>, String> {
+    let conn = banco(&estado)?;
+    db::listar(&conn, true).map_err(erro_banco)
+}
+
+#[derive(Serialize)]
+pub struct Exportacao {
+    texto: String,
+    quantidade: usize,
+    total_centavos: i64,
+}
+
+/// Monta o relatório dos pendentes do período e copia para a área de transferência.
+#[tauri::command]
+fn exportar(
+    app: AppHandle,
+    estado: State<Estado>,
+    inicio: String,
+    fim: String,
+) -> Result<Exportacao, String> {
+    validar_periodo(&inicio, &fim)?;
+    let (config, itens) = {
+        let conn = banco(&estado)?;
+        let config = Config {
+            nome: db::ler_config(&conn, "nome").map_err(erro_banco)?,
+            cpf: db::ler_config(&conn, "cpf").map_err(erro_banco)?,
+            pix: db::ler_config(&conn, "pix").map_err(erro_banco)?,
+        };
+        let itens = db::pendentes_do_periodo(&conn, &inicio, &fim).map_err(erro_banco)?;
+        (config, itens)
+    };
+    if config.nome.is_empty() || config.cpf.is_empty() || config.pix.is_empty() {
+        return Err("Preencha nome, CPF e chave Pix nas Configurações antes de exportar.".into());
+    }
+    if itens.is_empty() {
+        return Err("Nenhum lançamento pendente nesse período.".into());
+    }
+    let linhas: Vec<relatorio::Linha> = itens
+        .iter()
+        .map(|l| relatorio::Linha {
+            data: &l.data,
+            cidade: &l.cidade,
+            valor_centavos: l.valor_centavos,
+        })
+        .collect();
+    let texto = relatorio::montar(&config.nome, &config.cpf, &config.pix, &inicio, &fim, &linhas);
+    app.clipboard()
+        .write_text(texto.clone())
+        .map_err(|e| format!("Não foi possível copiar para a área de transferência: {e}"))?;
+    Ok(Exportacao {
+        quantidade: itens.len(),
+        total_centavos: itens.iter().map(|l| l.valor_centavos).sum(),
+        texto,
+    })
+}
+
+#[tauri::command]
 fn listar_pendentes(estado: State<Estado>) -> Result<Vec<db::Lancamento>, String> {
     let conn = banco(&estado)?;
     db::listar(&conn, false).map_err(erro_banco)
@@ -224,7 +304,8 @@ fn listar_pendentes(estado: State<Estado>) -> Result<Vec<db::Lancamento>, String
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    let construtor = tauri::Builder::default();
+    let construtor =
+        tauri::Builder::default().plugin(tauri_plugin_clipboard_manager::init());
     #[cfg(mobile)]
     let construtor = construtor.plugin(tauri_plugin_barcode_scanner::init());
 
@@ -250,6 +331,11 @@ pub fn run() {
             excluir_lancamento,
             resumo_periodo,
             excluir_periodo,
+            arquivar_periodo,
+            desarquivar_periodo,
+            definir_arquivado,
+            listar_arquivados,
+            exportar,
             listar_pendentes
         ])
         .run(tauri::generate_context!())

@@ -14,6 +14,7 @@ pub fn Editar(id: i64, tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>) ->
     spawn_local(async move {
         let resultado = api::obter_lancamento(id).await.map(|l| Inicial {
             id: Some(l.id),
+            arquivado: l.arquivado,
             chave: l.chave,
             data: l.data,
             cidade: l.cidade,

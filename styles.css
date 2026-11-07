@@ -371,3 +371,22 @@ button.item:active {
 .acoes-dialogo .botao {
   flex: 1;
 }
+
+/* ---------- Etapas 5 e 6: prévia do relatório ---------- */
+
+.previa {
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: ui-monospace, "Roboto Mono", monospace;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  background: #f9fafb;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  padding: 10px;
+}
+
+.conteudo > h2 + .ok {
+  margin-top: -4px;
+}

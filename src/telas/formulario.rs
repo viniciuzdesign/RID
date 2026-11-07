@@ -14,6 +14,7 @@ use crate::{chave, datas, dialogo, leitor};
 #[derive(Clone, Default)]
 pub struct Inicial {
     pub id: Option<i64>,
+    pub arquivado: bool,
     pub chave: String,
     pub data: String,
     pub cidade: String,
@@ -40,6 +41,8 @@ pub fn FormLancamento(
 ) -> impl IntoView {
     let dialogos = dialogo::usar();
     let id = inicial.id;
+    // Lançamentos arquivados voltam para a aba de arquivados.
+    let tela_de_volta = if inicial.arquivado { Tela::Arquivados } else { Tela::Pendentes };
     let hoje = hoje_iso();
 
     let data = RwSignal::new(if inicial.data.is_empty() {
@@ -143,7 +146,7 @@ pub fn FormLancamento(
             match resultado {
                 Ok(msg) => {
                     aviso.set(Some(msg.into()));
-                    tela.set(Tela::Pendentes);
+                    tela.set(tela_de_volta);
                 }
                 Err(e) => {
                     erro.try_set(Some(e));
@@ -219,7 +222,7 @@ pub fn FormLancamento(
                         match api::excluir_lancamento(id).await {
                             Ok(()) => {
                                 aviso.set(Some("Lançamento excluído.".into()));
-                                tela.set(Tela::Pendentes);
+                                tela.set(tela_de_volta);
                             }
                             Err(e) => dialogos.avisar(e),
                         }
@@ -228,6 +231,21 @@ pub fn FormLancamento(
             );
         }
     };
+
+    let desarquivar = move |_| {
+        if let Some(id) = id {
+            spawn_local(async move {
+                match api::definir_arquivado(id, false).await {
+                    Ok(()) => {
+                        aviso.set(Some("Lançamento desarquivado. Ele voltou para os pendentes.".into()));
+                        tela.set(Tela::Arquivados);
+                    }
+                    Err(e) => dialogos.avisar(e),
+                }
+            });
+        }
+    };
+    let arquivado = inicial.arquivado;
 
     let chave_editavel = modo != Modo::AposLeitura;
     let chave_fixa = chave_em_blocos(&inicial.chave);
@@ -315,6 +333,15 @@ pub fn FormLancamento(
                     </button>
                 </form>
                 {move || erro.get().map(|e| view! { <p class="erro">{e}</p> })}
+                {(modo == Modo::Edicao && arquivado)
+                    .then(|| {
+                        view! {
+                            <p class="discreto">"Este lançamento está arquivado."</p>
+                            <button class="botao secundario" on:click=desarquivar>
+                                "Desarquivar"
+                            </button>
+                        }
+                    })}
                 {(modo == Modo::Edicao)
                     .then(|| {
                         view! {
@@ -323,7 +350,7 @@ pub fn FormLancamento(
                             </button>
                         }
                     })}
-                <button class="botao secundario" on:click=move |_| tela.set(Tela::Pendentes)>
+                <button class="botao secundario" on:click=move |_| tela.set(tela_de_volta)>
                     "Cancelar"
                 </button>
             </main>

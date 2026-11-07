@@ -4,8 +4,14 @@ use leptos::task::spawn_local;
 use crate::api::{self, Config};
 use crate::dialogo::{CamadaDialogos, Dialogos};
 use crate::telas::{
-    configuracoes::Configuracoes, editar::Editar, excluir_periodo::ExcluirPeriodo, manual::Manual,
-    menu::Menu, novo::Novo, pendentes::Pendentes,
+    arquivados::Arquivados,
+    configuracoes::Configuracoes,
+    editar::Editar,
+    manual::Manual,
+    menu::Menu,
+    novo::Novo,
+    pendentes::Pendentes,
+    periodo::{Acao, Periodo},
 };
 
 #[derive(Clone, Copy, PartialEq)]
@@ -15,7 +21,8 @@ pub enum Tela {
     Manual,
     Editar(i64),
     Menu,
-    ExcluirPeriodo,
+    Arquivados,
+    Periodo(Acao),
     Configuracoes,
 }
 
@@ -60,7 +67,8 @@ pub fn App() -> impl IntoView {
                 Tela::Manual => view! { <Manual tela=tela aviso=aviso /> }.into_any(),
                 Tela::Editar(id) => view! { <Editar id=id tela=tela aviso=aviso /> }.into_any(),
                 Tela::Menu => view! { <Menu tela=tela /> }.into_any(),
-                Tela::ExcluirPeriodo => view! { <ExcluirPeriodo tela=tela aviso=aviso /> }.into_any(),
+                Tela::Arquivados => view! { <Arquivados tela=tela aviso=aviso /> }.into_any(),
+                Tela::Periodo(acao) => view! { <Periodo acao=acao tela=tela aviso=aviso /> }.into_any(),
                 Tela::Configuracoes => {
                     view! { <Configuracoes config=config tela=tela /> }.into_any()
                 }

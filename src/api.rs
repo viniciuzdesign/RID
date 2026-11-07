@@ -65,7 +65,22 @@ pub struct Dados {
 pub struct Resumo {
     pub pendentes: i64,
     pub arquivados: i64,
+    pub total_pendentes: i64,
+    pub total_arquivados: i64,
     pub total_centavos: i64,
+}
+
+#[derive(Deserialize, Clone, PartialEq)]
+pub struct Exportacao {
+    pub texto: String,
+    pub quantidade: usize,
+    pub total_centavos: i64,
+}
+
+#[derive(Serialize)]
+struct ArgsArquivado {
+    id: i64,
+    arquivado: bool,
 }
 
 #[derive(Serialize)]
@@ -141,6 +156,26 @@ pub async fn resumo_periodo(inicio: String, fim: String) -> Result<Resumo, Strin
 
 pub async fn excluir_periodo(inicio: String, fim: String) -> Result<usize, String> {
     chamar("excluir_periodo", &ArgsPeriodo { inicio, fim }).await
+}
+
+pub async fn arquivar_periodo(inicio: String, fim: String) -> Result<usize, String> {
+    chamar("arquivar_periodo", &ArgsPeriodo { inicio, fim }).await
+}
+
+pub async fn desarquivar_periodo(inicio: String, fim: String) -> Result<usize, String> {
+    chamar("desarquivar_periodo", &ArgsPeriodo { inicio, fim }).await
+}
+
+pub async fn definir_arquivado(id: i64, arquivado: bool) -> Result<(), String> {
+    chamar("definir_arquivado", &ArgsArquivado { id, arquivado }).await
+}
+
+pub async fn listar_arquivados() -> Result<Vec<Lancamento>, String> {
+    chamar("listar_arquivados", &()).await
+}
+
+pub async fn exportar(inicio: String, fim: String) -> Result<Exportacao, String> {
+    chamar("exportar", &ArgsPeriodo { inicio, fim }).await
 }
 
 pub async fn listar_pendentes() -> Result<Vec<Lancamento>, String> {

@@ -148,6 +148,8 @@ pub fn excluir(conn: &Connection, id: i64) -> rusqlite::Result<usize> {
 pub struct Resumo {
     pub pendentes: i64,
     pub arquivados: i64,
+    pub total_pendentes: i64,
+    pub total_arquivados: i64,
     pub total_centavos: i64,
 }
 
@@ -157,6 +159,8 @@ pub fn resumo_periodo(conn: &Connection, inicio: &str, fim: &str) -> rusqlite::R
         "SELECT
              COALESCE(SUM(CASE WHEN arquivado = 0 THEN 1 ELSE 0 END), 0),
              COALESCE(SUM(CASE WHEN arquivado = 1 THEN 1 ELSE 0 END), 0),
+             COALESCE(SUM(CASE WHEN arquivado = 0 THEN valor_centavos ELSE 0 END), 0),
+             COALESCE(SUM(CASE WHEN arquivado = 1 THEN valor_centavos ELSE 0 END), 0),
              COALESCE(SUM(valor_centavos), 0)
          FROM lancamentos WHERE data BETWEEN ?1 AND ?2",
         params![inicio, fim],
@@ -164,7 +168,9 @@ pub fn resumo_periodo(conn: &Connection, inicio: &str, fim: &str) -> rusqlite::R
             Ok(Resumo {
                 pendentes: l.get(0)?,
                 arquivados: l.get(1)?,
-                total_centavos: l.get(2)?,
+                total_pendentes: l.get(2)?,
+                total_arquivados: l.get(3)?,
+                total_centavos: l.get(4)?,
             })
         },
     )
@@ -182,5 +188,39 @@ pub fn listar(conn: &Connection, arquivado: bool) -> rusqlite::Result<Vec<Lancam
         "SELECT {CAMPOS} FROM lancamentos WHERE arquivado = ?1 ORDER BY data DESC, id DESC"
     ))?;
     let linhas = stmt.query_map(params![arquivado as i64], ler_lancamento)?;
+    linhas.collect()
+}
+
+/// Marca como arquivados (ou pendentes) os lançamentos do período que estão no estado oposto.
+pub fn arquivar_periodo(
+    conn: &Connection,
+    inicio: &str,
+    fim: &str,
+    arquivar: bool,
+) -> rusqlite::Result<usize> {
+    conn.execute(
+        "UPDATE lancamentos SET arquivado = ?3 WHERE data BETWEEN ?1 AND ?2 AND arquivado = ?4",
+        params![inicio, fim, arquivar as i64, (!arquivar) as i64],
+    )
+}
+
+pub fn definir_arquivado(conn: &Connection, id: i64, arquivado: bool) -> rusqlite::Result<usize> {
+    conn.execute(
+        "UPDATE lancamentos SET arquivado = ?2 WHERE id = ?1",
+        params![id, arquivado as i64],
+    )
+}
+
+/// Pendentes do período em ordem cronológica (para o relatório).
+pub fn pendentes_do_periodo(
+    conn: &Connection,
+    inicio: &str,
+    fim: &str,
+) -> rusqlite::Result<Vec<Lancamento>> {
+    let mut stmt = conn.prepare(&format!(
+        "SELECT {CAMPOS} FROM lancamentos
+         WHERE arquivado = 0 AND data BETWEEN ?1 AND ?2 ORDER BY data ASC, id ASC"
+    ))?;
+    let linhas = stmt.query_map(params![inicio, fim], ler_lancamento)?;
     linhas.collect()
 }
