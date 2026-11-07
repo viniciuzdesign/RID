@@ -19,10 +19,11 @@ Guardar no celular a chave de acesso (44 caracteres) dos cupons fiscais (NFC-e) 
 
 ### Lançamento
 - Leitura do QR Code pela câmera; extração da chave de acesso com validação do dígito verificador (CNPJ pode ser alfanumérico).
-- Cidade: automática com internet (CNPJ da chave → BrasilAPI → nome acentuado via IBGE; reserva: ReceitaWS). Sem internet ou falha: digitada pelo usuário.
+- Cidade: automática com internet (CNPJ da chave → BrasilAPI; reserva: ReceitaWS). O nome acentuado vem da lista de municípios da UF no IBGE, numa tentativa de 4 s; se falhar, fica o nome da Receita sem acento. Sem internet: digitada pelo usuário.
 - Cidade sempre gravada em MAIÚSCULAS.
 - Valor: sempre digitado pelo usuário ("32,50", "32.50", "R$ 1.250,00"…), gravado em centavos.
-- Data: sempre a data do dia do lançamento (fuso do celular).
+- Data: sugerida como hoje (fuso do celular) e editável; datas futuras são bloqueadas com mensagem.
+- Lançamento manual (cupom sem QR Code): chave NF-e opcional; se digitada, é validada e a cidade é buscada pelo CNPJ.
 - Cupom repetido (mesma chave, inclusive arquivado): avisar e só gravar se o usuário confirmar.
 
 ### Armazenamento
@@ -37,8 +38,12 @@ Guardar no celular a chave de acesso (44 caracteres) dos cupons fiscais (NFC-e) 
 
 ### Gerenciamento
 - Editar qualquer campo (chave, data, cidade, valor) de qualquer lançamento, pendente ou arquivado.
+- Na edição (e no manual), botão "Ler chave pelo QR Code": insere só a chave, não muda a cidade, e mostra com botão OK:
+  - "Chave NF-e inserida. Emitida na cidade [nome da cidade]."
+  - sem conexão/falha: "Chave NF-e inserida. Não foi possível consultar a cidade de emissão."
+  - se a chave já existir em outro lançamento, pede confirmação antes.
 - Excluir um lançamento.
-- Excluir em lote todos os lançamentos de um período (data inicial a final), com confirmação.
+- Excluir em lote todos os lançamentos (pendentes e arquivados) de um período, com confirmação mostrando quantidade e soma. Início sugerido: dia 1 do mês.
 
 ### Arquivamento
 - Manual, sempre por iniciativa do usuário (o app não pergunta após exportar).
@@ -69,8 +74,10 @@ Total: R$ 60,50
   - Tabela `config(chave, valor)`: chaves `nome`, `cpf`, `pix`.
   - Tabela `lancamentos(id, chave, data 'AAAA-MM-DD', cidade, valor_centavos, arquivado 0/1, criado_em)`.
 - Módulos do núcleo: `chave.rs` (extração/DV, com testes), `valor.rs` (centavos, com testes), `cpf.rs` (com testes), `cidade.rs` (HTTP com reqwest + rustls), `lib.rs` (comandos Tauri).
-- Comandos existentes: `obter_config`, `salvar_config`, `analisar_qrcode`, `buscar_cidade`, `criar_lancamento`, `listar_pendentes`.
-- Telas (`src/telas/`): `configuracoes.rs`, `pendentes.rs`, `novo.rs`. Navegação por enum `Tela` em `src/app.rs`.
+- Comandos: `obter_config`, `salvar_config`, `analisar_qrcode`, `verificar_chave`, `buscar_cidade`, `criar_lancamento`, `atualizar_lancamento`, `obter_lancamento`, `excluir_lancamento`, `resumo_periodo`, `excluir_periodo`, `listar_pendentes`.
+- `src-tauri/src/datas.rs` e `chave.rs` são compartilhados com a interface via `#[path]` em `src/main.rs`.
+- Telas (`src/telas/`): `pendentes.rs` (semanas), `novo.rs` (QR), `manual.rs`, `editar.rs`, `formulario.rs` (formulário compartilhado), `menu.rs`, `excluir_periodo.rs`, `configuracoes.rs`. Navegação por enum `Tela` em `src/app.rs`. Diálogos (OK / confirmar) em `src/dialogo.rs`; moldura da câmera em `src/leitor.rs`.
+- Formulários usam `novalidate` (a validação é do app, com mensagens em português).
 - QR Code: plugin `tauri-plugin-barcode-scanner` (só mobile), modo `windowed: true` (câmera atrás da WebView transparente; CSS em `.escaneando`). Permissão em `src-tauri/capabilities/mobile.json`.
 
 ## Armadilhas já resolvidas (não repetir)
@@ -86,14 +93,15 @@ Total: R$ 60,50
 - Testes de unidade do núcleo: `cpf.rs`, `chave.rs` e `valor.rs` não dependem de crates e podem ser testados com `rustc --edition 2021 --test <arquivo>`.
 
 ## Teste automático no emulador
-- Branch `diagnostico` + `.github/workflows/diagnostico.yml`: compila o APK x86_64, sobe um emulador Android 15 e executa `ci/diagnostico.sh` (preenche configurações pelo teclado, toca em Lançar cupom, aceita a permissão da câmera). Imprime prints (base64 gzip entre `PRINT_INICIO`/`PRINT_FIM`) e o log do app.
+- Branch `diagnostico` + `.github/workflows/diagnostico.yml`: compila o APK x86_64 **depurável**, sobe um emulador Android 15 e executa `ci/teste.py`, que controla a WebView pelo protocolo de depuração do Chrome (uma única conexão; `suppress_origin=True`). Cobre configurações, manual, data futura, chave com cidade automática, repetida, edição, câmera na edição, exclusão e exclusão por período. Imprime o texto da tela, prints (base64 gzip entre `PRINT_INICIO`/`PRINT_FIM`) e erros do log.
+- O emulador fica nos EUA: o IBGE não responde de lá (o acento da cidade só é testável no Brasil).
 - Para validar uma mudança antes de liberar ao usuário: fazer push dela na branch `diagnostico`.
 
-## Estado atual (versão 0.3.2)
+## Estado atual (versão 0.4.0)
 - [x] Etapa 1 — Esqueleto Tauri + Leptos e build automático (testado no celular).
 - [x] Etapa 2 — Banco SQLite e Configurações (testado no celular).
-- [~] Etapa 3 — Lançamento por QR Code, cidade automática, valor, aviso de repetido. 0.3.0: nomes errados dos comandos de permissão. 0.3.1: R8 quebrava o ML Kit. 0.3.2: corrigido e validado no emulador até a câmera aberta; **falta testar a leitura de um cupom real no celular**.
-- [ ] Etapa 4 — Pendentes agrupados por semana (seg–dom) com acumulados e total; editar, excluir, excluir em lote por período.
+- [x] Etapa 3 — Lançamento por QR Code (testado no celular com cupom real na 0.3.2).
+- [~] Etapa 4 — Semanas com acumulados, editar, excluir, excluir por período, data editável, manual com chave opcional, QR na edição. Validado no emulador; **falta teste no celular**.
 - [ ] Etapa 5 — Arquivar em lote por período; aba Arquivados (editar, excluir, desarquivar).
 - [ ] Etapa 6 — Exportação para a área de transferência no modelo acima (usar `tauri-plugin-clipboard-manager`).
 - [ ] Etapa 7 — Testes no celular e ajustes finais.
