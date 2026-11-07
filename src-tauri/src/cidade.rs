@@ -59,24 +59,36 @@ async fn com_acentos(cliente: &reqwest::Client, municipio: &str, uf: Option<&str
     let Some(uf) = uf.filter(|u| u.len() == 2) else {
         return municipio.to_string();
     };
-    let uf = uf.to_ascii_uppercase();
+    let url = format!(
+        "https://servicodados.ibge.gov.br/api/v1/localidades/estados/{}/municipios",
+        uf.to_ascii_uppercase()
+    );
     let procurado = sem_acento(municipio);
-    let fontes = [
-        format!("https://brasilapi.com.br/api/ibge/municipios/v1/{uf}"),
-        format!("https://servicodados.ibge.gov.br/api/v1/localidades/estados/{uf}/municipios"),
-    ];
-    for url in fontes {
-        let achado = obter_json(cliente, &url).await.and_then(|lista| {
-            lista.as_array()?.iter().find_map(|m| {
+    // Tentativa curta: se o IBGE demorar, fica o nome da Receita (sem acento).
+    let lista: Option<Value> = async {
+        cliente
+            .get(&url)
+            .timeout(Duration::from_secs(4))
+            .send()
+            .await
+            .ok()?
+            .error_for_status()
+            .ok()?
+            .json()
+            .await
+            .ok()
+    }
+    .await;
+    lista
+        .as_ref()
+        .and_then(Value::as_array)
+        .and_then(|itens| {
+            itens.iter().find_map(|m| {
                 let nome = m.get("nome")?.as_str()?;
                 (sem_acento(nome) == procurado).then(|| nome.to_string())
             })
-        });
-        if let Some(nome) = achado {
-            return nome;
-        }
-    }
-    municipio.to_string()
+        })
+        .unwrap_or_else(|| municipio.to_string())
 }
 
 /// Maiúsculas, sem acentos e sem espaços repetidos, para comparar nomes.

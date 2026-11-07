@@ -163,8 +163,14 @@ def main():
     print("data usada:", antes)
     p.t('clicar("Manual")', 2)
     p.t(f'preencher("Data do cupom", "{antes}")', 0.3)
-    p.t(f'preencher("Chave NF-e", "{CHAVE}")', 12)
-    print("Cidade preenchida automaticamente:", p.js('window.__t.valor("Cidade")'))
+    p.t(f'preencher("Chave NF-e", "{CHAVE}")', 1)
+    inicio = time.time()
+    cidade = ""
+    while time.time() - inicio < 30 and not cidade:
+        time.sleep(1)
+        p.js(AJUDANTES)
+        cidade = p.js('window.__t.valor("Cidade")')
+    print(f"Cidade preenchida automaticamente: {cidade!r} em {time.time() - inicio:.1f}s")
     tirar_print("04a-cidade-automatica")
     p.t('preencher("Valor", "28,00")', 0.3)
     p.t('clicar("Salvar")', 3)
@@ -173,7 +179,8 @@ def main():
 
     passo("5. Chave repetida deve avisar")
     p.t('clicar("Manual")', 2)
-    p.t(f'preencher("Chave NF-e", "{CHAVE}")', 10)
+    p.t(f'preencher("Chave NF-e", "{CHAVE}")', 1)
+    p.t('preencher("Cidade", "brasilia")', 0.3)
     p.t('preencher("Valor", "10")', 0.3)
     p.t('clicar("Salvar")', 3)
     p.tela()
