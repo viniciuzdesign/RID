@@ -41,26 +41,7 @@ fn texto(valor: &Value, campo: &str) -> Option<String> {
 async fn brasilapi(cliente: &reqwest::Client, cnpj: &str) -> Option<String> {
     let dados = obter_json(cliente, &format!("https://brasilapi.com.br/api/cnpj/v1/{cnpj}")).await?;
     let municipio = texto(&dados, "municipio")?;
-
-    let codigo_ibge = dados.get("codigo_municipio_ibge").and_then(|c| {
-        c.as_u64()
-            .or_else(|| c.as_str().and_then(|s| s.trim().parse().ok()))
-    });
-    if let Some(codigo) = codigo_ibge {
-        if let Some(nome) = nome_ibge(cliente, codigo).await {
-            return Some(nome);
-        }
-    }
-    Some(municipio)
-}
-
-async fn nome_ibge(cliente: &reqwest::Client, codigo: u64) -> Option<String> {
-    let dados = obter_json(
-        cliente,
-        &format!("https://servicodados.ibge.gov.br/api/v1/localidades/municipios/{codigo}"),
-    )
-    .await?;
-    texto(&dados, "nome")
+    Some(com_acentos(cliente, &municipio, texto(&dados, "uf").as_deref()).await)
 }
 
 async fn receitaws(cliente: &reqwest::Client, cnpj: &str) -> Option<String> {
@@ -68,5 +49,63 @@ async fn receitaws(cliente: &reqwest::Client, cnpj: &str) -> Option<String> {
     if dados.get("status").and_then(Value::as_str) == Some("ERROR") {
         return None;
     }
-    texto(&dados, "municipio")
+    let municipio = texto(&dados, "municipio")?;
+    Some(com_acentos(cliente, &municipio, texto(&dados, "uf").as_deref()).await)
+}
+
+/// A Receita grava os nomes sem acento ("SAO PAULO"). Procura o nome oficial,
+/// acentuado, na lista de municípios da UF no IBGE. Se não achar, devolve o original.
+async fn com_acentos(cliente: &reqwest::Client, municipio: &str, uf: Option<&str>) -> String {
+    let Some(uf) = uf.filter(|u| u.len() == 2) else {
+        return municipio.to_string();
+    };
+    let url = format!(
+        "https://servicodados.ibge.gov.br/api/v1/localidades/estados/{}/municipios",
+        uf.to_ascii_uppercase()
+    );
+    let procurado = sem_acento(municipio);
+    obter_json(cliente, &url)
+        .await
+        .and_then(|lista| {
+            lista.as_array()?.iter().find_map(|m| {
+                let nome = m.get("nome")?.as_str()?;
+                (sem_acento(nome) == procurado).then(|| nome.to_string())
+            })
+        })
+        .unwrap_or_else(|| municipio.to_string())
+}
+
+/// Maiúsculas, sem acentos e sem espaços repetidos, para comparar nomes.
+pub fn sem_acento(texto: &str) -> String {
+    texto
+        .to_uppercase()
+        .chars()
+        .map(|c| match c {
+            'Á' | 'À' | 'Â' | 'Ã' | 'Ä' => 'A',
+            'É' | 'È' | 'Ê' | 'Ë' => 'E',
+            'Í' | 'Ì' | 'Î' | 'Ï' => 'I',
+            'Ó' | 'Ò' | 'Ô' | 'Õ' | 'Ö' => 'O',
+            'Ú' | 'Ù' | 'Û' | 'Ü' => 'U',
+            'Ç' => 'C',
+            'Ñ' => 'N',
+            '-' | '\'' | '’' => ' ',
+            outro => outro,
+        })
+        .collect::<String>()
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+}
+
+#[cfg(test)]
+mod testes {
+    use super::sem_acento;
+
+    #[test]
+    fn compara_sem_acento() {
+        assert_eq!(sem_acento("São Paulo"), "SAO PAULO");
+        assert_eq!(sem_acento("Brasília"), "BRASILIA");
+        assert_eq!(sem_acento("Embu-Guaçu"), sem_acento("EMBU GUACU"));
+        assert_eq!(sem_acento("Pau-d'Arco"), sem_acento("PAU D ARCO"));
+    }
 }

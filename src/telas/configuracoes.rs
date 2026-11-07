@@ -47,7 +47,7 @@ pub fn Configuracoes(config: RwSignal<Config>, tela: RwSignal<Tela>) -> impl Int
                     "Primeiro acesso: preencha seus dados. Eles aparecem em todos os relatórios."
                 </p>
             </Show>
-            <form class="cartao formulario" on:submit=salvar>
+            <form class="cartao formulario" novalidate=true on:submit=salvar>
                 <label>
                     "Nome completo"
                     <input

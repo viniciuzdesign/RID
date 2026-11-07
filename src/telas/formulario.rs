@@ -240,7 +240,7 @@ pub fn FormLancamento(
         >
             <main class="conteudo">
                 <h2>{titulo}</h2>
-                <form class="cartao formulario" on:submit=salvar>
+                <form class="cartao formulario" novalidate=true on:submit=salvar>
                     <label>
                         "Data do cupom"
                         <input

@@ -74,7 +74,7 @@ pub fn ExcluirPeriodo(tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>) -> 
             <p class="discreto">
                 "Exclui todos os lançamentos entre as duas datas, pendentes e arquivados."
             </p>
-            <form class="cartao formulario" on:submit=continuar>
+            <form class="cartao formulario" novalidate=true on:submit=continuar>
                 <label>
                     "Data inicial"
                     <input
