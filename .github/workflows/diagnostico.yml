@@ -52,6 +52,9 @@ jobs:
             echo "::error::Não consegui desligar o R8 em $GRADLE"; exit 1
           fi
           echo "R8 desligado:"; grep -n -B2 -A1 "enable = false" "$GRADLE"
+          # Só no teste: app depurável, para o roteiro controlar a WebView.
+          sed -i 's/getByName("release") {/getByName("release") {\n            isDebuggable = true/' "$GRADLE"
+          grep -n -A2 'getByName("release")' "$GRADLE"
 
       - name: Compilar APK de release (x86_64, igual ao do celular)
         run: cargo tauri android build --apk --target x86_64 --ci
@@ -65,6 +68,9 @@ jobs:
           "$BT/zipalign" -f -p 4 "$UNSIGNED" alinhado.apk
           "$BT/apksigner" sign --ks tmp.p12 --ks-type PKCS12 --ks-key-alias tmp \
             --ks-pass pass:senha123 --key-pass pass:senha123 --out diag.apk alinhado.apk
+
+      - name: Instalar cliente WebSocket (para o roteiro)
+        run: pip install websocket-client
 
       - name: Habilitar KVM
         run: |

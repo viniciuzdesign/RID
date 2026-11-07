@@ -78,11 +78,29 @@ fn ler_lancamento(linha: &rusqlite::Row) -> rusqlite::Result<Lancamento> {
 
 const CAMPOS: &str = "id, chave, data, cidade, valor_centavos, arquivado";
 
-/// Lançamento mais recente com a mesma chave, se houver.
-pub fn buscar_por_chave(conn: &Connection, chave: &str) -> rusqlite::Result<Option<Lancamento>> {
+/// Lançamento mais recente com a mesma chave (ignorando um id, se informado).
+pub fn buscar_por_chave(
+    conn: &Connection,
+    chave: &str,
+    ignorar_id: Option<i64>,
+) -> rusqlite::Result<Option<Lancamento>> {
+    if chave.is_empty() {
+        return Ok(None);
+    }
     conn.query_row(
-        &format!("SELECT {CAMPOS} FROM lancamentos WHERE chave = ?1 ORDER BY id DESC LIMIT 1"),
-        params![chave],
+        &format!(
+            "SELECT {CAMPOS} FROM lancamentos WHERE chave = ?1 AND id != ?2 ORDER BY id DESC LIMIT 1"
+        ),
+        params![chave, ignorar_id.unwrap_or(-1)],
+        ler_lancamento,
+    )
+    .optional()
+}
+
+pub fn obter(conn: &Connection, id: i64) -> rusqlite::Result<Option<Lancamento>> {
+    conn.query_row(
+        &format!("SELECT {CAMPOS} FROM lancamentos WHERE id = ?1"),
+        params![id],
         ler_lancamento,
     )
     .optional()
@@ -105,6 +123,57 @@ pub fn inserir(
         &format!("SELECT {CAMPOS} FROM lancamentos WHERE id = ?1"),
         params![id],
         ler_lancamento,
+    )
+}
+
+pub fn atualizar(
+    conn: &Connection,
+    id: i64,
+    chave: &str,
+    data: &str,
+    cidade: &str,
+    valor_centavos: i64,
+) -> rusqlite::Result<usize> {
+    conn.execute(
+        "UPDATE lancamentos SET chave = ?2, data = ?3, cidade = ?4, valor_centavos = ?5 WHERE id = ?1",
+        params![id, chave, data, cidade, valor_centavos],
+    )
+}
+
+pub fn excluir(conn: &Connection, id: i64) -> rusqlite::Result<usize> {
+    conn.execute("DELETE FROM lancamentos WHERE id = ?1", params![id])
+}
+
+#[derive(serde::Serialize)]
+pub struct Resumo {
+    pub pendentes: i64,
+    pub arquivados: i64,
+    pub total_centavos: i64,
+}
+
+/// Quantidades e soma de todos os lançamentos (pendentes e arquivados) entre duas datas.
+pub fn resumo_periodo(conn: &Connection, inicio: &str, fim: &str) -> rusqlite::Result<Resumo> {
+    conn.query_row(
+        "SELECT
+             COALESCE(SUM(CASE WHEN arquivado = 0 THEN 1 ELSE 0 END), 0),
+             COALESCE(SUM(CASE WHEN arquivado = 1 THEN 1 ELSE 0 END), 0),
+             COALESCE(SUM(valor_centavos), 0)
+         FROM lancamentos WHERE data BETWEEN ?1 AND ?2",
+        params![inicio, fim],
+        |l| {
+            Ok(Resumo {
+                pendentes: l.get(0)?,
+                arquivados: l.get(1)?,
+                total_centavos: l.get(2)?,
+            })
+        },
+    )
+}
+
+pub fn excluir_periodo(conn: &Connection, inicio: &str, fim: &str) -> rusqlite::Result<usize> {
+    conn.execute(
+        "DELETE FROM lancamentos WHERE data BETWEEN ?1 AND ?2",
+        params![inicio, fim],
     )
 }
 

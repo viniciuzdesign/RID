@@ -9,17 +9,17 @@ pub fn hoje_iso() -> String {
     )
 }
 
-/// "2026-11-06" → "06/11/2026"
-pub fn data_br(iso: &str) -> String {
-    if iso.len() == 10 {
-        format!("{}/{}/{}", &iso[8..10], &iso[5..7], &iso[0..4])
-    } else {
-        iso.to_string()
-    }
-}
-
 /// 3250 → "R$ 32,50"
 pub fn moeda(centavos: i64) -> String {
+    format!("R$ {}", numero(centavos))
+}
+
+/// 3250 → "32,50" (para preencher o campo de valor)
+pub fn valor_para_campo(centavos: i64) -> String {
+    format!("{},{:02}", centavos / 100, centavos % 100)
+}
+
+fn numero(centavos: i64) -> String {
     let reais = (centavos / 100).to_string();
     let mut com_milhar = String::new();
     for (i, c) in reais.chars().enumerate() {
@@ -28,7 +28,16 @@ pub fn moeda(centavos: i64) -> String {
         }
         com_milhar.push(c);
     }
-    format!("R$ {com_milhar},{:02}", centavos % 100)
+    format!("{com_milhar},{:02}", centavos % 100)
+}
+
+/// Mantém só letras e números, em maiúsculas (formato da chave NF-e).
+pub fn limpar_chave(texto: &str) -> String {
+    texto
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .collect::<String>()
+        .to_ascii_uppercase()
 }
 
 /// Chave em blocos de 4 caracteres, para facilitar a leitura.
@@ -39,4 +48,12 @@ pub fn chave_em_blocos(chave: &str) -> String {
         .map(|b| String::from_utf8_lossy(b).into_owned())
         .collect::<Vec<_>>()
         .join(" ")
+}
+
+pub fn descrever_existente(data: &str, arquivado: bool) -> String {
+    format!(
+        "Este cupom já foi lançado em {} ({}).",
+        crate::datas::br(data),
+        if arquivado { "arquivado" } else { "pendente" }
+    )
 }

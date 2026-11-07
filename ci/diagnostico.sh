@@ -1,73 +1,123 @@
 #!/usr/bin/env bash
-# Reproduz no emulador: configurações -> Lançar cupom -> permissão da câmera,
-# tira prints de cada passo e imprime o log do processo do app.
+# Teste de ponta a ponta no emulador. A página é controlada pelo depurador da WebView
+# (ci/cdp.py); prints de cada passo vão em base64 gzip entre PRINT_INICIO/PRINT_FIM.
 set -u
 APK="$1"
 PKG="com.viniciuzdesign.rid"
+T="python3 ci/cdp.py"
 UI="python3 ci/ui.py"
+CHAVE="53261100000000000191650010000123451000123455"  # CNPJ do Banco do Brasil (Brasília)
 
 passo() { echo; echo "=================== $1 ==================="; }
-tecla() { adb shell input keyevent "$1"; sleep 0.7; }
-tab() { tecla 61; }
-enter() { tecla 66; }
-digitar() { adb shell input text "$1"; sleep 0.7; }
 print() {
   echo "PRINT_INICIO $1"
   adb exec-out screencap -p | gzip -9 | base64 -w0
   echo
   echo "PRINT_FIM $1"
 }
+tela() { echo "--- texto da tela ---"; $T 'texto()'; echo "---------------------"; }
+t() { $T "$1"; sleep "${2:-1.5}"; }
 
 passo "Instalando"
 adb install -r "$APK"
-adb shell wm size
 adb logcat -c
-
-passo "Abrindo o app"
 adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1 >/dev/null
 sleep 20
-PID=$(adb shell pidof "$PKG")
-echo "PID=$PID"
-print 01-abertura
+PID=$(adb shell pidof "$PKG"); echo "PID=$PID"
 
-passo "Preenchendo configurações pelo teclado"
-adb shell input tap 540 1500
-sleep 1
-tab; tab; digitar "Teste%sDiagnostico"
-tab; digitar "52998224725"
-tab; digitar "teste@exemplo.com"
-tab; enter
-sleep 4
-print 02-salvo
-tab; enter
-sleep 4
-print 03-pendentes
+passo "1. Configurações"
+t 'preencher("Nome completo", "Teste Diagnostico")' 0.3
+t 'preencher("CPF", "52998224725")' 0.3
+t 'preencher("Chave Pix", "teste@exemplo.com")' 0.3
+t 'clicar("Salvar")' 3
+t 'clicar("Voltar")' 3
+tela
 
-passo "Tocando em Lançar cupom"
-tab; tab; enter
-sleep 8
-print 04-depois-de-lancar
-$UI dump
+passo "2. Lançamento manual sem chave"
+t 'clicar("Manual")' 2
+print 02a-form-manual
+tela
+t 'preencher("Cidade", "sao paulo")' 0.3
+t 'preencher("Valor", "32,50")' 0.3
+t 'clicar("Salvar")' 3
+tela
 
-passo "Permitindo a câmera (se o Android pedir)"
+passo "3. Data futura deve ser bloqueada"
+t 'clicar("Manual")' 2
+t 'preencher("Data do cupom", "2099-01-01")' 0.3
+t 'preencher("Cidade", "TESTE")' 0.3
+t 'preencher("Valor", "5")' 0.3
+t 'clicar("Salvar")' 2
+tela
+t 'clicar("Cancelar")' 2
+
+passo "4. Lançamento manual com chave (cidade automática) e data de ontem"
+t 'clicar("Manual")' 2
+ONTEM=$($T '(()=>{const d=new Date(Date.now()-864e5);return d.toISOString().slice(0,10)})()')
+echo "ontem=$ONTEM"
+t "preencher(\"Data do cupom\", \"$ONTEM\")" 0.3
+t "preencher(\"Chave NF-e\", \"$CHAVE\")" 12
+echo "Cidade preenchida: $($T 'valor("Cidade")')"
+print 04a-cidade-automatica
+t 'preencher("Valor", "28,00")' 0.3
+t 'clicar("Salvar")' 3
+tela
+print 04b-lista-semanal
+
+passo "5. Chave repetida deve avisar"
+t 'clicar("Manual")' 2
+t "preencher(\"Chave NF-e\", \"$CHAVE\")" 10
+t 'preencher("Valor", "10")' 0.3
+t 'clicar("Salvar")' 3
+tela
+print 05a-aviso-repetida
+t 'clicar("Cancelar")' 1
+t 'clicar("Cancelar")' 2
+
+passo "6. Editar o primeiro item (valor e cidade)"
+t 'item(0)' 3
+tela
+print 06a-edicao
+t 'preencher("Valor", "40")' 0.3
+t 'preencher("Cidade", "campinas")' 0.3
+t 'clicar("Salvar")' 3
+tela
+
+passo "7. Ler chave pelo QR Code na edição e cancelar"
+t 'item(0)' 3
+t 'clicar("Ler chave pelo QR Code")' 6
 $UI tap "While using the app"
-sleep 10
-print 05-depois-da-permissao
-$UI dump
+sleep 6
+print 07a-camera-na-edicao
+t 'clicar("Cancelar")' 3
+tela
+t 'clicar("Cancelar")' 2
+
+passo "8. Excluir um lançamento"
+t 'item(0)' 3
+t 'clicar("Excluir lançamento")' 2
+tela
+t 'clicar("Excluir")' 3
+tela
+
+passo "9. Excluir por período"
+t 'clicar("⋮")' 2
+t 'clicar("Excluir lançamentos por período")' 2
+t "preencher(\"Data inicial\", \"$ONTEM\")" 0.3
+t 'clicar("Continuar")' 3
+tela
+print 09a-confirmar-periodo
+t 'clicar("Excluir")' 3
+tela
 
 passo "O app ainda está aberto?"
 adb shell pidof "$PKG" && echo "SIM, processo vivo" || echo "NAO, o app fechou"
 
-passo "Componentes do ML Kit quebrados pelo R8 (deve ser 0)"
-adb logcat -d | grep -c "Could not instantiate com.google.mlkit" || true
-
-passo "Console da página (chromium)"
-adb logcat -d -v brief | grep -i "chromium\|Console" | tail -40
-
 passo "Log do processo do app"
-adb logcat -d -v threadtime | awk -v pid="$PID" '$3 == pid' | grep -v "EGL_emulation\|eglCodecCommon\|HostConnection\|gralloc" | grep -v ComponentDiscovery | tail -150
+adb logcat -d -v threadtime | awk -v pid="$PID" '$3 == pid' \
+  | grep -v "EGL_emulation\|eglCodecCommon\|HostConnection\|gralloc\|ComponentDiscovery\|DynamiteModule" | grep -E " [EWF] |FATAL|Exception" | tail -80
 
 passo "Crashes"
-adb logcat -d -b crash -v threadtime | tail -80
+adb logcat -d -b crash -v threadtime | tail -60
 
 passo "Fim"

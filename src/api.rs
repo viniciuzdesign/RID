@@ -54,16 +54,30 @@ pub struct Analise {
 }
 
 #[derive(Serialize, Clone)]
-pub struct NovoLancamento {
+pub struct Dados {
     pub chave: String,
     pub data: String,
     pub cidade: String,
     pub valor: String,
 }
 
+#[derive(Deserialize, Clone, PartialEq)]
+pub struct Resumo {
+    pub pendentes: i64,
+    pub arquivados: i64,
+    pub total_centavos: i64,
+}
+
 #[derive(Serialize)]
-struct ArgsConteudo {
+struct ArgsQr {
     conteudo: String,
+    ignorar_id: Option<i64>,
+}
+
+#[derive(Serialize)]
+struct ArgsVerificar {
+    chave: String,
+    ignorar_id: Option<i64>,
 }
 
 #[derive(Serialize)]
@@ -72,20 +86,61 @@ struct ArgsCnpj {
 }
 
 #[derive(Serialize)]
-struct ArgsNovo {
-    novo: NovoLancamento,
+struct ArgsDados {
+    dados: Dados,
 }
 
-pub async fn analisar_qrcode(conteudo: String) -> Result<Analise, String> {
-    chamar("analisar_qrcode", &ArgsConteudo { conteudo }).await
+#[derive(Serialize)]
+struct ArgsAtualizar {
+    id: i64,
+    dados: Dados,
+}
+
+#[derive(Serialize)]
+struct ArgsId {
+    id: i64,
+}
+
+#[derive(Serialize)]
+struct ArgsPeriodo {
+    inicio: String,
+    fim: String,
+}
+
+pub async fn analisar_qrcode(conteudo: String, ignorar_id: Option<i64>) -> Result<Analise, String> {
+    chamar("analisar_qrcode", &ArgsQr { conteudo, ignorar_id }).await
+}
+
+pub async fn verificar_chave(chave: String, ignorar_id: Option<i64>) -> Result<Option<Lancamento>, String> {
+    chamar("verificar_chave", &ArgsVerificar { chave, ignorar_id }).await
 }
 
 pub async fn buscar_cidade(cnpj: String) -> Result<String, String> {
     chamar("buscar_cidade", &ArgsCnpj { cnpj }).await
 }
 
-pub async fn criar_lancamento(novo: NovoLancamento) -> Result<Lancamento, String> {
-    chamar("criar_lancamento", &ArgsNovo { novo }).await
+pub async fn criar_lancamento(dados: Dados) -> Result<Lancamento, String> {
+    chamar("criar_lancamento", &ArgsDados { dados }).await
+}
+
+pub async fn atualizar_lancamento(id: i64, dados: Dados) -> Result<(), String> {
+    chamar("atualizar_lancamento", &ArgsAtualizar { id, dados }).await
+}
+
+pub async fn obter_lancamento(id: i64) -> Result<Lancamento, String> {
+    chamar("obter_lancamento", &ArgsId { id }).await
+}
+
+pub async fn excluir_lancamento(id: i64) -> Result<(), String> {
+    chamar("excluir_lancamento", &ArgsId { id }).await
+}
+
+pub async fn resumo_periodo(inicio: String, fim: String) -> Result<Resumo, String> {
+    chamar("resumo_periodo", &ArgsPeriodo { inicio, fim }).await
+}
+
+pub async fn excluir_periodo(inicio: String, fim: String) -> Result<usize, String> {
+    chamar("excluir_periodo", &ArgsPeriodo { inicio, fim }).await
 }
 
 pub async fn listar_pendentes() -> Result<Vec<Lancamento>, String> {

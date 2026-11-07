@@ -1,6 +1,7 @@
 mod chave;
 mod cidade;
 mod cpf;
+mod datas;
 mod db;
 mod valor;
 
@@ -71,17 +72,37 @@ pub struct Analise {
     existente: Option<db::Lancamento>,
 }
 
-#[tauri::command]
-fn analisar_qrcode(estado: State<Estado>, conteudo: String) -> Result<Analise, String> {
+fn banco<'a>(estado: &'a State<Estado>) -> Result<std::sync::MutexGuard<'a, rusqlite::Connection>, String> {
+    estado.db.lock().map_err(|_| "Banco indisponível".to_string())
+}
+
+#[tauri::command(rename_all = "snake_case")]
+fn analisar_qrcode(
+    estado: State<Estado>,
+    conteudo: String,
+    ignorar_id: Option<i64>,
+) -> Result<Analise, String> {
     let chave = chave::extrair(&conteudo)
         .ok_or("Este QR Code não contém uma chave de cupom fiscal válida.")?;
-    let conn = estado.db.lock().map_err(|_| "Banco indisponível".to_string())?;
-    let existente = db::buscar_por_chave(&conn, &chave).map_err(erro_banco)?;
+    let conn = banco(&estado)?;
+    let existente = db::buscar_por_chave(&conn, &chave, ignorar_id).map_err(erro_banco)?;
     Ok(Analise {
         cnpj: chave::cnpj(&chave),
         chave,
         existente,
     })
+}
+
+/// Lançamento existente com a mesma chave (para avisar sobre cupom repetido).
+#[tauri::command(rename_all = "snake_case")]
+fn verificar_chave(
+    estado: State<Estado>,
+    chave: String,
+    ignorar_id: Option<i64>,
+) -> Result<Option<db::Lancamento>, String> {
+    let chave = normalizar_chave(&chave)?;
+    let conn = banco(&estado)?;
+    db::buscar_por_chave(&conn, &chave, ignorar_id).map_err(erro_banco)
 }
 
 #[tauri::command]
@@ -90,21 +111,25 @@ async fn buscar_cidade(cnpj: String) -> Result<String, String> {
 }
 
 #[derive(Deserialize)]
-pub struct NovoLancamento {
+pub struct Dados {
     chave: String,
     data: String,
     cidade: String,
     valor: String,
 }
 
-fn data_valida(data: &str) -> bool {
-    let b = data.as_bytes();
-    b.len() == 10
-        && b[4] == b'-'
-        && b[7] == b'-'
-        && b.iter()
-            .enumerate()
-            .all(|(i, c)| i == 4 || i == 7 || c.is_ascii_digit())
+/// Chave opcional: vazia é aceita; se preenchida, precisa ser válida.
+fn normalizar_chave(chave: &str) -> Result<String, String> {
+    let limpa: String = chave
+        .chars()
+        .filter(|c| c.is_ascii_alphanumeric())
+        .collect::<String>()
+        .to_ascii_uppercase();
+    if limpa.is_empty() || chave::valida(&limpa) {
+        Ok(limpa)
+    } else {
+        Err("Chave NF-e inválida. Confira os 44 caracteres ou deixe o campo vazio.".into())
+    }
 }
 
 fn normalizar_cidade(cidade: &str) -> Result<String, String> {
@@ -116,24 +141,84 @@ fn normalizar_cidade(cidade: &str) -> Result<String, String> {
     }
 }
 
-#[tauri::command]
-fn criar_lancamento(estado: State<Estado>, novo: NovoLancamento) -> Result<db::Lancamento, String> {
-    let chave = novo.chave.trim().to_ascii_uppercase();
-    if !chave::valida(&chave) {
-        return Err("Chave de acesso inválida.".into());
-    }
-    if !data_valida(&novo.data) {
+struct Validado {
+    chave: String,
+    data: String,
+    cidade: String,
+    centavos: i64,
+}
+
+fn validar(dados: &Dados) -> Result<Validado, String> {
+    if !datas::valida(&dados.data) {
         return Err("Data inválida.".into());
     }
-    let cidade = normalizar_cidade(&novo.cidade)?;
-    let centavos = valor::para_centavos(&novo.valor)?;
-    let conn = estado.db.lock().map_err(|_| "Banco indisponível".to_string())?;
-    db::inserir(&conn, &chave, &novo.data, &cidade, centavos).map_err(erro_banco)
+    Ok(Validado {
+        chave: normalizar_chave(&dados.chave)?,
+        data: dados.data.clone(),
+        cidade: normalizar_cidade(&dados.cidade)?,
+        centavos: valor::para_centavos(&dados.valor)?,
+    })
+}
+
+#[tauri::command]
+fn criar_lancamento(estado: State<Estado>, dados: Dados) -> Result<db::Lancamento, String> {
+    let v = validar(&dados)?;
+    let conn = banco(&estado)?;
+    db::inserir(&conn, &v.chave, &v.data, &v.cidade, v.centavos).map_err(erro_banco)
+}
+
+#[tauri::command]
+fn atualizar_lancamento(estado: State<Estado>, id: i64, dados: Dados) -> Result<(), String> {
+    let v = validar(&dados)?;
+    let conn = banco(&estado)?;
+    match db::atualizar(&conn, id, &v.chave, &v.data, &v.cidade, v.centavos).map_err(erro_banco)? {
+        0 => Err("Lançamento não encontrado.".into()),
+        _ => Ok(()),
+    }
+}
+
+#[tauri::command]
+fn obter_lancamento(estado: State<Estado>, id: i64) -> Result<db::Lancamento, String> {
+    let conn = banco(&estado)?;
+    db::obter(&conn, id)
+        .map_err(erro_banco)?
+        .ok_or_else(|| "Lançamento não encontrado.".to_string())
+}
+
+#[tauri::command]
+fn excluir_lancamento(estado: State<Estado>, id: i64) -> Result<(), String> {
+    let conn = banco(&estado)?;
+    db::excluir(&conn, id).map_err(erro_banco)?;
+    Ok(())
+}
+
+fn validar_periodo(inicio: &str, fim: &str) -> Result<(), String> {
+    if !datas::valida(inicio) || !datas::valida(fim) {
+        return Err("Informe a data inicial e a data final.".into());
+    }
+    if inicio > fim {
+        return Err("A data inicial precisa ser anterior ou igual à data final.".into());
+    }
+    Ok(())
+}
+
+#[tauri::command]
+fn resumo_periodo(estado: State<Estado>, inicio: String, fim: String) -> Result<db::Resumo, String> {
+    validar_periodo(&inicio, &fim)?;
+    let conn = banco(&estado)?;
+    db::resumo_periodo(&conn, &inicio, &fim).map_err(erro_banco)
+}
+
+#[tauri::command]
+fn excluir_periodo(estado: State<Estado>, inicio: String, fim: String) -> Result<usize, String> {
+    validar_periodo(&inicio, &fim)?;
+    let conn = banco(&estado)?;
+    db::excluir_periodo(&conn, &inicio, &fim).map_err(erro_banco)
 }
 
 #[tauri::command]
 fn listar_pendentes(estado: State<Estado>) -> Result<Vec<db::Lancamento>, String> {
-    let conn = estado.db.lock().map_err(|_| "Banco indisponível".to_string())?;
+    let conn = banco(&estado)?;
     db::listar(&conn, false).map_err(erro_banco)
 }
 
@@ -157,8 +242,14 @@ pub fn run() {
             obter_config,
             salvar_config,
             analisar_qrcode,
+            verificar_chave,
             buscar_cidade,
             criar_lancamento,
+            atualizar_lancamento,
+            obter_lancamento,
+            excluir_lancamento,
+            resumo_periodo,
+            excluir_periodo,
             listar_pendentes
         ])
         .run(tauri::generate_context!())

@@ -269,3 +269,105 @@ h2 {
   border: 1px solid #fff;
   max-width: 320px;
 }
+
+/* ---------- Etapa 4: semanas, rodapé duplo, diálogos ---------- */
+
+.rodape {
+  display: flex;
+  gap: 10px;
+}
+
+.rodape .botao:first-child {
+  flex: 2;
+}
+
+.rodape .botao:last-child {
+  flex: 1;
+}
+
+.semana {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cabecalho-semana {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 4px 0;
+  color: var(--verde-escuro);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+button.item {
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+}
+
+button.item:active {
+  background: #ecfdf5;
+}
+
+.campo-chave {
+  font-family: ui-monospace, "Roboto Mono", monospace;
+  font-size: 0.95rem;
+  padding: 12px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  resize: none;
+  color: var(--texto);
+  background: #fff;
+}
+
+.formulario input[type="date"] {
+  min-height: 46px;
+}
+
+.botao.perigo {
+  background: #b91c1c;
+}
+
+.botao.perigo:active {
+  background: #991b1b;
+}
+
+.fundo-dialogo {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 50;
+}
+
+.dialogo {
+  background: #fff;
+  border-radius: 14px;
+  padding: 20px;
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.dialogo p {
+  margin: 0;
+  font-size: 1.02rem;
+  line-height: 1.4;
+}
+
+.acoes-dialogo {
+  display: flex;
+  gap: 10px;
+}
+
+.acoes-dialogo .botao {
+  flex: 1;
+}
