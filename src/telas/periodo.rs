@@ -121,7 +121,7 @@ pub fn Periodo(acao: Acao, tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>
                     Ok(exp) => {
                         previa.try_set(Some(exp.texto));
                         dialogos.avisar(format!(
-                            "Relatório copiado: {} cupom(ns), total {}. Cole no WhatsApp do financeiro.",
+                            "Relatório copiado: {} cupom(ns), total {}. Cole onde quiser.",
                             exp.quantidade,
                             moeda(exp.total_centavos)
                         ));
