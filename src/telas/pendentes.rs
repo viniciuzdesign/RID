@@ -31,24 +31,24 @@ pub fn Pendentes(tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>) -> impl 
 
     view! {
         <section class="destaque">
-            <div class="destaque-texto">
+            <div class="destaque-topo">
                 <span class="destaque-rotulo">"A receber"</span>
-                <strong class="destaque-valor">{move || moeda(resumo().0)}</strong>
-                <span class="destaque-detalhe">
-                    {move || match resumo().1 {
-                        0 => "Nenhum cupom pendente".to_string(),
-                        1 => "1 cupom pendente".to_string(),
-                        n => format!("{n} cupons pendentes"),
-                    }}
-                </span>
+                <button
+                    class="botao-exportar"
+                    on:click=move |_| tela.set(Tela::Periodo(Acao::Exportar))
+                >
+                    {icones::exportar()}
+                    "Exportar"
+                </button>
             </div>
-            <button
-                class="botao-exportar"
-                on:click=move |_| tela.set(Tela::Periodo(Acao::Exportar))
-            >
-                {icones::exportar()}
-                "Exportar"
-            </button>
+            <strong class="destaque-valor">{move || moeda(resumo().0)}</strong>
+            <span class="destaque-detalhe">
+                {move || match resumo().1 {
+                    0 => "Nenhum cupom pendente".to_string(),
+                    1 => "1 cupom pendente".to_string(),
+                    n => format!("{n} cupons pendentes"),
+                }}
+            </span>
         </section>
         <main class="conteudo com-rodape">
             {mensagem.map(|m| view! { <p class="ok">{m}</p> })}
