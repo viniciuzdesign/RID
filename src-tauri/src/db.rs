@@ -55,7 +55,7 @@ pub fn gravar_config(conn: &Connection, chave: &str, valor: &str) -> rusqlite::R
     Ok(())
 }
 
-#[derive(serde::Serialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct Lancamento {
     pub id: i64,
     pub chave: String,
@@ -223,4 +223,23 @@ pub fn pendentes_do_periodo(
     ))?;
     let linhas = stmt.query_map(params![inicio, fim], ler_lancamento)?;
     linhas.collect()
+}
+
+/// Recoloca um lançamento excluído, com o mesmo id (usado pelo "Desfazer").
+pub fn restaurar(conn: &Connection, l: &Lancamento) -> rusqlite::Result<()> {
+    conn.execute(
+        "INSERT OR REPLACE INTO lancamentos (id, chave, data, cidade, valor_centavos, arquivado, criado_em)
+         VALUES (?1, ?2, ?3, ?4, ?5, ?6, datetime('now'))",
+        params![l.id, l.chave, l.data, l.cidade, l.valor_centavos, l.arquivado as i64],
+    )?;
+    Ok(())
+}
+
+/// Data do pendente mais antigo e do mais recente.
+pub fn intervalo_pendentes(conn: &Connection) -> rusqlite::Result<Option<(String, String)>> {
+    conn.query_row(
+        "SELECT MIN(data), MAX(data) FROM lancamentos WHERE arquivado = 0",
+        [],
+        |l| Ok(l.get::<_, Option<String>>(0)?.zip(l.get::<_, Option<String>>(1)?)),
+    )
 }

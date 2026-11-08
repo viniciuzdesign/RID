@@ -47,7 +47,7 @@ pub async fn salvar_config(config: Config) -> Result<Config, String> {
     chamar("salvar_config", &ArgsSalvarConfig { config }).await
 }
 
-#[derive(Deserialize, Clone, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, PartialEq)]
 pub struct Lancamento {
     pub id: i64,
     pub chave: String,
@@ -187,6 +187,19 @@ pub async fn listar_arquivados() -> Result<Vec<Lancamento>, String> {
 
 pub async fn exportar(inicio: String, fim: String) -> Result<Exportacao, String> {
     chamar("exportar", &ArgsPeriodo { inicio, fim }).await
+}
+
+#[derive(Serialize)]
+struct ArgsLancamento {
+    lancamento: Lancamento,
+}
+
+pub async fn exportar_tudo() -> Result<Exportacao, String> {
+    chamar("exportar_tudo", &()).await
+}
+
+pub async fn restaurar_lancamento(lancamento: Lancamento) -> Result<(), String> {
+    chamar("restaurar_lancamento", &ArgsLancamento { lancamento }).await
 }
 
 pub async fn listar_pendentes() -> Result<Vec<Lancamento>, String> {

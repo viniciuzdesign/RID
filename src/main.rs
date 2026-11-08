@@ -4,6 +4,7 @@ mod app;
 mod chave;
 #[path = "../src-tauri/src/datas.rs"]
 mod datas;
+mod desfazer;
 mod dialogo;
 mod icones;
 mod leitor;

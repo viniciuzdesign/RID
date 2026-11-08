@@ -184,12 +184,44 @@ pub fn Periodo(acao: Acao, tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>
         });
     };
 
-    let classe_botao = if acao == Acao::Excluir { "botao perigo" } else { "botao" };
+    let exportar_tudo = move |_| {
+        ocupado.set(true);
+        spawn_local(async move {
+            let resultado = api::exportar_tudo().await;
+            ocupado.try_set(false);
+            match resultado {
+                Ok(exp) => {
+                    previa.try_set(Some(exp.texto));
+                    dialogos.avisar(format!(
+                        "Relatório copiado: {} cupom(ns), total {}. Cole no WhatsApp do financeiro.",
+                        exp.quantidade,
+                        moeda(exp.total_centavos)
+                    ));
+                }
+                Err(e) => dialogos.avisar(e),
+            }
+        });
+    };
+
+    let classe_botao = match acao {
+        Acao::Excluir => "botao perigo",
+        Acao::Exportar => "botao secundario",
+        _ => "botao",
+    };
 
     view! {
         <main class="conteudo">
             <h2>{acao.titulo()}</h2>
             <p class="discreto">{acao.descricao()}</p>
+            {(acao == Acao::Exportar)
+                .then(|| {
+                    view! {
+                        <button class="botao" disabled=move || ocupado.get() on:click=exportar_tudo>
+                            "Exportar tudo"
+                        </button>
+                        <h3 class="ou-periodo">"Ou escolha o período"</h3>
+                    }
+                })}
             <form class="cartao formulario" novalidate=true on:submit=continuar>
                 <label>
                     "Data inicial"

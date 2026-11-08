@@ -266,24 +266,21 @@ pub struct Exportacao {
     total_centavos: i64,
 }
 
-/// Monta o relatório dos pendentes do período e copia para a área de transferência.
-#[tauri::command]
-fn exportar(
-    app: AppHandle,
-    estado: State<Estado>,
-    inicio: String,
-    fim: String,
+fn gerar_relatorio(
+    app: &AppHandle,
+    estado: &State<Estado>,
+    inicio: &str,
+    fim: &str,
 ) -> Result<Exportacao, String> {
-    validar_periodo(&inicio, &fim)?;
     let (config, itens) = {
-        let conn = banco(&estado)?;
+        let conn = banco(estado)?;
         let config = Config {
             nome: db::ler_config(&conn, "nome").map_err(erro_banco)?,
             cpf: db::ler_config(&conn, "cpf").map_err(erro_banco)?,
             pix: db::ler_config(&conn, "pix").map_err(erro_banco)?,
             tema: String::new(),
         };
-        let itens = db::pendentes_do_periodo(&conn, &inicio, &fim).map_err(erro_banco)?;
+        let itens = db::pendentes_do_periodo(&conn, inicio, fim).map_err(erro_banco)?;
         (config, itens)
     };
     if config.nome.is_empty() || config.cpf.is_empty() || config.pix.is_empty() {
@@ -300,7 +297,7 @@ fn exportar(
             valor_centavos: l.valor_centavos,
         })
         .collect();
-    let texto = relatorio::montar(&config.nome, &config.cpf, &config.pix, &inicio, &fim, &linhas);
+    let texto = relatorio::montar(&config.nome, &config.cpf, &config.pix, inicio, fim, &linhas);
     app.clipboard()
         .write_text(texto.clone())
         .map_err(|e| format!("Não foi possível copiar para a área de transferência: {e}"))?;
@@ -309,6 +306,36 @@ fn exportar(
         total_centavos: itens.iter().map(|l| l.valor_centavos).sum(),
         texto,
     })
+}
+
+/// Monta o relatório dos pendentes do período e copia para a área de transferência.
+#[tauri::command]
+fn exportar(
+    app: AppHandle,
+    estado: State<Estado>,
+    inicio: String,
+    fim: String,
+) -> Result<Exportacao, String> {
+    validar_periodo(&inicio, &fim)?;
+    gerar_relatorio(&app, &estado, &inicio, &fim)
+}
+
+/// Exporta todos os pendentes: período do mais antigo ao mais recente.
+#[tauri::command]
+fn exportar_tudo(app: AppHandle, estado: State<Estado>) -> Result<Exportacao, String> {
+    let intervalo = {
+        let conn = banco(&estado)?;
+        db::intervalo_pendentes(&conn).map_err(erro_banco)?
+    };
+    let (inicio, fim) = intervalo.ok_or_else(|| "Nenhum lançamento pendente para exportar.".to_string())?;
+    gerar_relatorio(&app, &estado, &inicio, &fim)
+}
+
+/// Desfaz uma exclusão: recoloca o lançamento como estava.
+#[tauri::command]
+fn restaurar_lancamento(estado: State<Estado>, lancamento: db::Lancamento) -> Result<(), String> {
+    let conn = banco(&estado)?;
+    db::restaurar(&conn, &lancamento).map_err(erro_banco)
 }
 
 #[tauri::command]
@@ -352,6 +379,8 @@ pub fn run() {
             definir_arquivado,
             listar_arquivados,
             exportar,
+            exportar_tudo,
+            restaurar_lancamento,
             listar_pendentes
         ])
         .run(tauri::generate_context!())

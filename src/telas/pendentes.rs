@@ -6,7 +6,8 @@ use leptos::task::spawn_local;
 use crate::api::{self, Lancamento};
 use crate::app::Tela;
 use crate::icones;
-use crate::telas::lista;
+use crate::telas::lista::{self, Contexto, Modo};
+use crate::telas::periodo::Acao;
 use crate::util::moeda;
 
 #[component]
@@ -17,6 +18,7 @@ pub fn Pendentes(tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>) -> impl 
         lista_s.try_set(Some(resultado));
     });
 
+    let ctx = Contexto::novo(tela, Modo::Pendentes, lista_s);
     let mensagem = aviso.get_untracked();
     aviso.set(None);
 
@@ -29,15 +31,24 @@ pub fn Pendentes(tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>) -> impl 
 
     view! {
         <section class="destaque">
-            <span class="destaque-rotulo">"A receber"</span>
-            <strong class="destaque-valor">{move || moeda(resumo().0)}</strong>
-            <span class="destaque-detalhe">
-                {move || match resumo().1 {
-                    0 => "Nenhum cupom pendente".to_string(),
-                    1 => "1 cupom pendente".to_string(),
-                    n => format!("{n} cupons pendentes"),
-                }}
-            </span>
+            <div class="destaque-texto">
+                <span class="destaque-rotulo">"A receber"</span>
+                <strong class="destaque-valor">{move || moeda(resumo().0)}</strong>
+                <span class="destaque-detalhe">
+                    {move || match resumo().1 {
+                        0 => "Nenhum cupom pendente".to_string(),
+                        1 => "1 cupom pendente".to_string(),
+                        n => format!("{n} cupons pendentes"),
+                    }}
+                </span>
+            </div>
+            <button
+                class="botao-exportar"
+                on:click=move |_| tela.set(Tela::Periodo(Acao::Exportar))
+            >
+                {icones::exportar()}
+                "Exportar"
+            </button>
         </section>
         <main class="conteudo com-rodape">
             {mensagem.map(|m| view! { <p class="ok">{m}</p> })}
@@ -51,7 +62,7 @@ pub fn Pendentes(tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>) -> impl 
                     </section>
                 }
                 .into_any(),
-                Some(Ok(itens)) => lista::semanas(itens, tela).into_any(),
+                Some(Ok(itens)) => lista::semanas(itens, ctx).into_any(),
             }}
         </main>
         <div class="rodape">

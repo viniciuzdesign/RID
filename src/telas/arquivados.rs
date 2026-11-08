@@ -5,7 +5,7 @@ use leptos::task::spawn_local;
 
 use crate::api::{self, Lancamento};
 use crate::app::Tela;
-use crate::telas::lista;
+use crate::telas::lista::{self, Contexto, Modo};
 use crate::telas::periodo::Acao;
 use crate::util::moeda;
 
@@ -17,6 +17,7 @@ pub fn Arquivados(tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>) -> impl
         lista.try_set(Some(resultado));
     });
 
+    let ctx = Contexto::novo(tela, Modo::Arquivados, lista);
     let mensagem = aviso.get_untracked();
     aviso.set(None);
 
@@ -38,7 +39,7 @@ pub fn Arquivados(tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>) -> impl
                     let resumo = format!("{} arquivado(s), somando {}", itens.len(), moeda(total));
                     view! {
                         <p class="discreto">{resumo}</p>
-                        {lista::semanas(itens, tela)}
+                        {lista::semanas(itens, ctx)}
                     }
                     .into_any()
                 }

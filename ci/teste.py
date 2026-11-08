@@ -125,6 +125,22 @@ def tirar_print(nome):
     print(f"PRINT_FIM {nome}", flush=True)
 
 
+def deslizar(p, indice):
+    """Arrasta a linha `indice` para a esquerda com um gesto real na tela."""
+    p.js(AJUDANTES)
+    r = p.js(f"(()=>{{const e=document.querySelectorAll('button.item')[{indice}];"
+             "if(!e) return null; const r=e.getBoundingClientRect();"
+             "return [r.right, r.top + r.height/2, window.devicePixelRatio]})()")
+    if not r:
+        print("   NAO ACHOU linha", indice)
+        return
+    x, y, dpr = r
+    x1, x2, yy = int((x - 20) * dpr), int((x - 230) * dpr), int(y * dpr)
+    adb("shell", "input", "swipe", str(x1), str(yy), str(x2), str(yy), "300")
+    print(f"   deslizou linha {indice} de x={x1} para x={x2} em y={yy}")
+    time.sleep(1)
+
+
 def tocar_texto_nativo(texto):
     subprocess.run(["python3", "ci/ui.py", "tap", texto])
 
@@ -328,6 +344,48 @@ def main():
     p.tela()
     p.t('clicar("Voltar")', 2)
     p.tela()
+
+    passo("S1. Deslizar pendente, arquivar e desfazer dentro de 3 s")
+    deslizar(p, 0)
+    tirar_print("s1-acoes-pendente")
+    print("Linha aberta:", p.js("!!document.querySelector('.linha-deslizante.aberta')"))
+    p.t('clicar("Arquivar")', 0.8)
+    tirar_print("s2-barra-desfazer")
+    p.tela()
+    p.t('clicar("Desfazer")', 2)
+    p.tela()
+
+    passo("S2. Deslizar pendente e arquivar (sem desfazer)")
+    deslizar(p, 0)
+    p.t('clicar("Arquivar")', 4.5)
+    p.tela()
+
+    passo("S3. Arquivados: deslizar e desarquivar")
+    p.t('clicar("Opções")', 2)
+    p.t('clicar("Ver arquivados")', 3)
+    deslizar(p, 0)
+    tirar_print("s3-acoes-arquivado")
+    p.t('clicar("Desarquivar")', 4.5)
+    p.tela()
+    p.t('clicar("Voltar")', 3)
+
+    passo("S4. Deslizar, excluir com confirmação e desfazer")
+    deslizar(p, 1)
+    p.t('clicar("Excluir")', 1.5)
+    p.tela()
+    tirar_print("s4-confirmar-exclusao")
+    p.t('clicar("Excluir")', 0.8)
+    p.tela()
+    p.t('clicar("Desfazer")', 2)
+    p.tela()
+
+    passo("S5. Exportar pelo bloco laranja: Exportar tudo")
+    tirar_print("s5-inicio")
+    p.t('clicar("Exportar")', 3)
+    p.t('clicar("Exportar tudo")', 3)
+    p.tela()
+    p.t('clicar("OK")', 1)
+    p.t('clicar("Voltar")', 2)
 
     passo("13. Excluir um lançamento")
     p.t('item(0)', 3)

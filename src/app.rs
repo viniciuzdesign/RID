@@ -2,6 +2,7 @@ use leptos::prelude::*;
 use leptos::task::spawn_local;
 
 use crate::api::{self, Config};
+use crate::desfazer::{BarraDesfazer, Desfazer};
 use crate::dialogo::{CamadaDialogos, Dialogos};
 use crate::telas::{
     arquivados::Arquivados,
@@ -29,6 +30,7 @@ pub enum Tela {
 #[component]
 pub fn App() -> impl IntoView {
     provide_context(Dialogos::novo());
+    provide_context(Desfazer::novo());
 
     let tela = RwSignal::new(Tela::Pendentes);
     let config = RwSignal::new(Config::default());
@@ -75,6 +77,7 @@ pub fn App() -> impl IntoView {
                 }
             }}
         </Show>
+        <BarraDesfazer />
         <CamadaDialogos />
     }
 }
