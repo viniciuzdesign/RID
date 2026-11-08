@@ -24,7 +24,7 @@ pub fn Menu(tela: RwSignal<Tela>) -> impl IntoView {
                     tela,
                     Tela::Periodo(Acao::Exportar),
                     "Exportar relatório",
-                    "Copia o texto para colar no WhatsApp do financeiro",
+                    "Copia o texto para colar onde quiser.",
                 )}
                 {opcao(
                     tela,
