@@ -57,13 +57,3 @@ pub fn descrever_existente(data: &str, arquivado: bool) -> String {
         if arquivado { "arquivado" } else { "pendente" }
     )
 }
-
-/// Aplica o tema na página: "claro", "escuro" ou "auto" (segue o celular).
-pub fn aplicar_tema(tema: &str) {
-    let tema = match tema {
-        "claro" | "escuro" => tema,
-        _ => "auto",
-    };
-    let f = js_sys::Function::new_with_args("t", "document.documentElement.dataset.tema = t;");
-    let _ = f.call1(&wasm_bindgen::JsValue::NULL, &wasm_bindgen::JsValue::from_str(tema));
-}

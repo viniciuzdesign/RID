@@ -5,7 +5,7 @@ use leptos::task::spawn_local;
 
 use crate::api::{self, Lancamento};
 use crate::app::Tela;
-use crate::telas::lista;
+use crate::datas;
 use crate::telas::periodo::Acao;
 use crate::util::moeda;
 
@@ -35,10 +35,37 @@ pub fn Arquivados(tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>) -> impl
                 .into_any(),
                 Some(Ok(itens)) => {
                     let total: i64 = itens.iter().map(|l| l.valor_centavos).sum();
-                    let resumo = format!("{} arquivado(s), somando {}", itens.len(), moeda(total));
                     view! {
-                        <p class="discreto">{resumo}</p>
-                        {lista::semanas(itens, tela)}
+                        <section class="cartao total">
+                            <span>{format!("{} arquivado(s)", itens.len())}</span>
+                            <strong>{moeda(total)}</strong>
+                        </section>
+                        <ul class="lista">
+                            {itens
+                                .into_iter()
+                                .map(|l| {
+                                    let id = l.id;
+                                    let sem_chave = l.chave.is_empty();
+                                    view! {
+                                        <li>
+                                            <button
+                                                class="item"
+                                                on:click=move |_| tela.set(Tela::Editar(id))
+                                            >
+                                                <div class="item-info">
+                                                    <strong>{l.cidade}</strong>
+                                                    <span class="discreto">
+                                                        {datas::br(&l.data)}
+                                                        {sem_chave.then(|| " · sem chave")}
+                                                    </span>
+                                                </div>
+                                                <span class="valor">{moeda(l.valor_centavos)}</span>
+                                            </button>
+                                        </li>
+                                    }
+                                })
+                                .collect_view()}
+                        </ul>
                     }
                     .into_any()
                 }

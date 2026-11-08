@@ -2,7 +2,7 @@ name: Diagnóstico no emulador
 
 on:
   push:
-    branches: [diagnostico]
+    branches: [diagnostico, "diagnostico-*"]
   workflow_dispatch:
 
 jobs:

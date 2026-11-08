@@ -2,7 +2,6 @@ pub mod arquivados;
 pub mod configuracoes;
 pub mod editar;
 pub mod formulario;
-pub mod lista;
 pub mod manual;
 pub mod menu;
 pub mod novo;

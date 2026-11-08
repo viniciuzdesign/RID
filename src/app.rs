@@ -39,7 +39,6 @@ pub fn App() -> impl IntoView {
     spawn_local(async move {
         match api::obter_config().await {
             Ok(c) => {
-                crate::util::aplicar_tema(&c.tema);
                 if c.nome.is_empty() {
                     tela.set(Tela::Configuracoes);
                 }
@@ -54,7 +53,7 @@ pub fn App() -> impl IntoView {
         <header class="topo">
             <span>"RID"</span>
             <button class="icone" aria-label="Opções" on:click=move |_| tela.set(Tela::Menu)>
-                {crate::icones::menu()}
+                "⋮"
             </button>
         </header>
         {move || erro.get().map(|e| view! { <p class="erro conteudo">{e}</p> })}
