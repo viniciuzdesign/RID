@@ -302,6 +302,11 @@ p {
   display: flex;
 }
 
+/* Botões escondidos enquanto a linha está fechada (evita a borda aparecer por baixo). */
+.linha-deslizante:not(.aberta):not(:has(.arrastando)) .acoes-linha {
+  visibility: hidden;
+}
+
 .acao-linha {
   flex: 1;
   border: none;

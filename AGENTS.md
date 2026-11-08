@@ -72,6 +72,14 @@ Total: R$ 60,50
 - Tokens de cor no topo de `styles.css` (`--laranja`, `--acao`, `--sobre-acao`, …); o escuro redefine os mesmos tokens. Botões de ação: `--acao` com contraste AA.
 - Tela inicial: valor a receber em destaque laranja; lista em linhas de extrato por semana (`src/telas/lista.rs`); rodapé com "Ler QR Code" e "Manual". Avisos e confirmações sobem de baixo da tela; exclusão em vermelho.
 - Ícones em SVG de traço em `src/icones.rs`. Fonte do sistema, números tabulares.
+- Botão **Exportar** no bloco laranja da tela inicial (leva à tela de exportação, que tem **Exportar tudo** — período do pendente mais antigo ao mais recente — e a escolha de período).
+
+## Gestos e desfazer (0.7.0)
+- Arrastar uma linha para a esquerda revela ações (`src/telas/lista.rs`, eventos de ponteiro com `touch-action: pan-y`; só uma linha aberta por vez; tocar fecha):
+  - Pendentes: **Arquivar** (verde-escuro #1e6b43) e **Excluir** (vermelho #c62828).
+  - Arquivados: **Desarquivar** (cinza-escuro #4a4f57) e **Excluir**.
+- Confirmação só no Excluir. Arquivar/Desarquivar vão direto.
+- Depois da ação, barra **Desfazer** por 3 s (`src/desfazer.rs`). A ação é feita na hora; "Desfazer" reverte (exclusão é revertida com `restaurar_lancamento`, que recoloca o registro com o mesmo id).
 
 ## Arquitetura
 - **Tauri 2** (núcleo Rust em `src-tauri/`) + **Leptos 0.8 CSR** (interface Rust → WebAssembly em `src/`, empacotada pelo Trunk).
@@ -80,7 +88,7 @@ Total: R$ 60,50
   - Tabela `config(chave, valor)`: chaves `nome`, `cpf`, `pix`.
   - Tabela `lancamentos(id, chave, data 'AAAA-MM-DD', cidade, valor_centavos, arquivado 0/1, criado_em)`.
 - Módulos do núcleo: `chave.rs` (extração/DV, com testes), `valor.rs` (centavos, com testes), `cpf.rs` (com testes), `cidade.rs` (HTTP com reqwest + rustls), `lib.rs` (comandos Tauri).
-- Comandos: `obter_config`, `salvar_config`, `salvar_tema`, `analisar_qrcode`, `verificar_chave`, `buscar_cidade`, `criar_lancamento`, `atualizar_lancamento`, `obter_lancamento`, `excluir_lancamento`, `resumo_periodo`, `excluir_periodo`, `arquivar_periodo`, `desarquivar_periodo`, `definir_arquivado`, `listar_arquivados`, `exportar`, `listar_pendentes`.
+- Comandos: `obter_config`, `salvar_config`, `salvar_tema`, `analisar_qrcode`, `verificar_chave`, `buscar_cidade`, `criar_lancamento`, `atualizar_lancamento`, `obter_lancamento`, `excluir_lancamento`, `resumo_periodo`, `excluir_periodo`, `arquivar_periodo`, `desarquivar_periodo`, `definir_arquivado`, `listar_arquivados`, `exportar`, `exportar_tudo`, `restaurar_lancamento`, `listar_pendentes`.
 - `relatorio.rs` monta o texto exato do modelo (com testes); `exportar` copia via `tauri-plugin-clipboard-manager` no núcleo Rust (`app.clipboard().write_text`).
 - `src-tauri/src/datas.rs` e `chave.rs` são compartilhados com a interface via `#[path]` em `src/main.rs`.
 - Telas (`src/telas/`): `pendentes.rs` (semanas), `novo.rs` (QR), `manual.rs`, `editar.rs`, `formulario.rs` (formulário compartilhado; botão Desarquivar quando arquivado), `arquivados.rs`, `periodo.rs` (exportar, arquivar, desarquivar e excluir por período — `Acao`), `menu.rs`, `configuracoes.rs`. Navegação por enum `Tela` em `src/app.rs`. Diálogos (OK / confirmar) em `src/dialogo.rs`; moldura da câmera em `src/leitor.rs`.
@@ -100,18 +108,19 @@ Total: R$ 60,50
 - Testes de unidade do núcleo: `cpf.rs`, `chave.rs` e `valor.rs` não dependem de crates e podem ser testados com `rustc --edition 2021 --test <arquivo>`.
 
 ## Teste automático no emulador
-- Branch `diagnostico` + `.github/workflows/diagnostico.yml`: compila o APK x86_64 **depurável**, sobe um emulador Android 15 e executa `ci/teste.py`, que controla a WebView pelo protocolo de depuração do Chrome (uma única conexão; `suppress_origin=True`). Cobre configurações, manual, data futura, chave com cidade automática, repetida, edição, câmera na edição, exportação, arquivar/desarquivar (individual e por período), exclusão e exclusão por período. Imprime o texto da tela, prints (base64 gzip entre `PRINT_INICIO`/`PRINT_FIM`) e erros do log.
+- Branch `diagnostico` + `.github/workflows/diagnostico.yml`: compila o APK x86_64 **depurável**, sobe um emulador Android 15 e executa `ci/teste.py`, que controla a WebView pelo protocolo de depuração do Chrome (uma única conexão; `suppress_origin=True`). Cobre configurações, gestos de arrastar (`adb input swipe`), desfazer, Exportar tudo, manual, data futura, chave com cidade automática, repetida, edição, câmera na edição, exportação, arquivar/desarquivar (individual e por período), exclusão e exclusão por período. Imprime o texto da tela, prints (base64 gzip entre `PRINT_INICIO`/`PRINT_FIM`) e erros do log.
 - O emulador fica nos EUA: o IBGE não responde de lá (o acento da cidade só é testável no Brasil).
 - O teste desliga a Play Store no emulador: num emulador recém-ligado ela atualiza a WebView em segundo plano e derruba a página (sintomas: "Command … not allowed by ACL" e depurador sem páginas). Não é defeito do app.
 - O botão de menu é localizado pelo `aria-label="Opções"`.
 - Para validar uma mudança antes de liberar ao usuário: fazer push dela na branch `diagnostico`.
 
-## Estado atual (versão 0.6.0)
+## Estado atual (versão 0.7.0)
 - [x] Etapa 1 — Esqueleto Tauri + Leptos e build automático (testado no celular).
 - [x] Etapa 2 — Banco SQLite e Configurações (testado no celular).
 - [x] Etapa 3 — Lançamento por QR Code (testado no celular com cupom real na 0.3.2).
 - [x] Etapa 4 — Semanas, edição, exclusões, data editável, manual com chave opcional, QR na edição (testado no celular na 0.4.0).
 - [~] Etapa 5 — Arquivar por período; aba Arquivados; desarquivar individual e por período. Validado no emulador; **falta teste no celular**.
 - [~] Etapa 6 — Exportação para a área de transferência no modelo exato. Validado no emulador (texto); **falta confirmar a colagem no WhatsApp**.
-- [~] Visual novo laranja com modo claro/escuro (0.6.0). Validado no emulador; **falta teste no celular**.
+- [~] Visual laranja com modo claro/escuro (0.6.0).
+- [~] Gestos de arrastar, desfazer em 3 s, Exportar no topo e Exportar tudo (0.7.0). Validado no emulador com gesto real; **falta teste no celular**.
 - [ ] Etapa 7 — Testes no celular e ajustes finais.
