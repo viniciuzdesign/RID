@@ -29,7 +29,7 @@ impl Acao {
     fn descricao(self) -> &'static str {
         match self {
             Acao::Exportar => {
-                "Copia o relatório dos lançamentos pendentes do período para você colar no WhatsApp do financeiro."
+                "Copia o relatório dos lançamentos pendentes do período para você colar onde quiser."
             }
             Acao::Arquivar => {
                 "Arquiva os lançamentos pendentes do período. Eles saem da tela inicial e podem ser desarquivados depois."
