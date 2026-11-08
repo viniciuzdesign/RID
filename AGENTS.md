@@ -18,7 +18,7 @@ Guardar no celular a chave de acesso (44 caracteres) dos cupons fiscais (NFC-e) 
 - Nome, CPF (validado) e chave Pix. Usados em todos os relatórios.
 
 ### Lançamento
-- Leitura do QR Code pela câmera; extração da chave de acesso com validação do dígito verificador (CNPJ pode ser alfanumérico).
+- Leitura pela câmera do **QR Code** ou do **código de barras Code 128** da NF-e (DANFE) / CF-e SAT; extração da chave de acesso com validação do dígito verificador (CNPJ pode ser alfanumérico). Outros códigos (EAN de produto, boleto) são recusados pela validação. Moldura retangular para servir aos dois.
 - Cidade: automática com internet (CNPJ da chave → BrasilAPI; reserva: ReceitaWS). O nome acentuado vem da lista de municípios da UF no IBGE, numa tentativa de 4 s; se falhar, fica o nome da Receita sem acento. Sem internet: digitada pelo usuário.
 - Cidade sempre gravada em MAIÚSCULAS.
 - Valor: sempre digitado pelo usuário ("32,50", "32.50", "R$ 1.250,00"…), gravado em centavos.
@@ -38,7 +38,7 @@ Guardar no celular a chave de acesso (44 caracteres) dos cupons fiscais (NFC-e) 
 
 ### Gerenciamento
 - Editar qualquer campo (chave, data, cidade, valor) de qualquer lançamento, pendente ou arquivado.
-- Na edição (e no manual), botão "Ler chave pelo QR Code": insere só a chave, não muda a cidade, e mostra com botão OK:
+- Na edição (e no manual), botão "Ler chave pela câmera" (QR Code ou código de barras): insere só a chave, não muda a cidade, e mostra com botão OK:
   - "Chave NF-e inserida. Emitida na cidade [nome da cidade]."
   - sem conexão/falha: "Chave NF-e inserida. Não foi possível consultar a cidade de emissão."
   - se a chave já existir em outro lançamento, pede confirmação antes.
@@ -70,7 +70,7 @@ Total: R$ 60,50
 ## Visual
 - Cor predominante laranja. Modo claro e escuro: segue o celular (`prefers-color-scheme`) ou fica fixo em Configurações → Aparência (`Automático`/`Claro`/`Escuro`, salvo na chave `tema` da tabela `config` e aplicado como `data-tema` em `<html>`).
 - Tokens de cor no topo de `styles.css` (`--laranja`, `--acao`, `--sobre-acao`, …); o escuro redefine os mesmos tokens. Botões de ação: `--acao` com contraste AA.
-- Tela inicial: valor a receber em destaque laranja; lista em linhas de extrato por semana (`src/telas/lista.rs`); rodapé com "Ler QR Code" e "Manual". Avisos e confirmações sobem de baixo da tela; exclusão em vermelho.
+- Tela inicial: valor a receber em destaque laranja; lista em linhas de extrato por semana (`src/telas/lista.rs`); rodapé com "Ler código" e "Manual". Avisos e confirmações sobem de baixo da tela; exclusão em vermelho.
 - Ícones em SVG de traço em `src/icones.rs`. Fonte do sistema, números tabulares.
 - Botão **Exportar** no bloco laranja da tela inicial (leva à tela de exportação, que tem **Exportar tudo** — período do pendente mais antigo ao mais recente — e a escolha de período).
 
@@ -114,7 +114,7 @@ Total: R$ 60,50
 - O botão de menu é localizado pelo `aria-label="Opções"`.
 - Para validar uma mudança antes de liberar ao usuário: fazer push dela na branch `diagnostico`.
 
-## Estado atual (versão 0.7.0)
+## Estado atual (versão 0.8.0)
 - [x] Etapa 1 — Esqueleto Tauri + Leptos e build automático (testado no celular).
 - [x] Etapa 2 — Banco SQLite e Configurações (testado no celular).
 - [x] Etapa 3 — Lançamento por QR Code (testado no celular com cupom real na 0.3.2).
@@ -123,4 +123,5 @@ Total: R$ 60,50
 - [~] Etapa 6 — Exportação para a área de transferência no modelo exato. Validado no emulador (texto); **falta confirmar a colagem no WhatsApp**.
 - [~] Visual laranja com modo claro/escuro (0.6.0).
 - [~] Gestos de arrastar, desfazer em 3 s, Exportar no topo e Exportar tudo (0.7.0). Validado no emulador com gesto real; **falta teste no celular**.
+- [~] Leitura do código de barras Code 128 da nota (0.8.0). Formato habilitado no plugin (`formats: ["QR_CODE", "CODE_128"]`); **leitura real de nota em papel falta testar no celular**.
 - [ ] Etapa 7 — Testes no celular e ajustes finais.

@@ -228,7 +228,7 @@ struct OpcoesLeitura {
 
 pub const LEITURA_CANCELADA: &str = "cancelled";
 
-/// Pede permissão da câmera (se preciso) e lê um QR Code.
+/// Pede permissão da câmera (se preciso) e lê um QR Code ou o código de barras (Code 128) da nota.
 pub async fn ler_qrcode() -> Result<String, String> {
     let atual: Permissoes = chamar("plugin:barcode-scanner|check_permissions", &()).await?;
     if atual.camera != "granted" {
@@ -245,7 +245,7 @@ pub async fn ler_qrcode() -> Result<String, String> {
         "plugin:barcode-scanner|scan",
         &OpcoesLeitura {
             windowed: true,
-            formats: vec!["QR_CODE"],
+            formats: vec!["QR_CODE", "CODE_128"],
             camera_direction: "back",
         },
     )

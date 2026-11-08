@@ -99,7 +99,7 @@ fn analisar_qrcode(
     ignorar_id: Option<i64>,
 ) -> Result<Analise, String> {
     let chave = chave::extrair(&conteudo)
-        .ok_or("Este QR Code não contém uma chave de cupom fiscal válida.")?;
+        .ok_or("Este código não contém uma chave de nota ou cupom fiscal válida.")?;
     let conn = banco(&estado)?;
     let existente = db::buscar_por_chave(&conn, &chave, ignorar_id).map_err(erro_banco)?;
     Ok(Analise {

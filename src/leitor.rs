@@ -8,7 +8,7 @@ use crate::api;
 pub fn mira(ao_cancelar: impl Fn() + Clone + 'static) -> impl IntoView {
     view! {
         <div class="escaneando">
-            <p class="dica">"Aponte a câmera para o QR Code do cupom"</p>
+            <p class="dica">"Aponte para o QR Code ou o código de barras da nota"</p>
             <div class="mira"></div>
             <button
                 class="botao cancelar-leitura"

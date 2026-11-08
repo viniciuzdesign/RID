@@ -77,6 +77,15 @@ mod testes {
     }
 
     #[test]
+    fn extrai_de_codigo_de_barras() {
+        // O código de barras (Code 128) do DANFE contém só os 44 dígitos.
+        let chave = chave_de_teste("3526110123456700019055001000012345100012345");
+        assert_eq!(extrair(&chave), Some(chave.clone()));
+        // Código de barras de produto (EAN-13) não é chave.
+        assert_eq!(extrair("7891234567895"), None);
+    }
+
+    #[test]
     fn aceita_cnpj_alfanumerico() {
         let chave = chave_de_teste("35261112ABC34501DE3565001000012345100012345");
         assert!(valida(&chave));

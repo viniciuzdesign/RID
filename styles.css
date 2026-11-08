@@ -719,11 +719,12 @@ button.opcao span {
   text-align: center;
 }
 
+/* Moldura retangular: serve para o QR Code e para o código de barras comprido da nota. */
 .mira {
-  width: 70vw;
-  height: 70vw;
-  max-width: 320px;
-  max-height: 320px;
+  width: 86vw;
+  height: 56vw;
+  max-width: 420px;
+  max-height: 270px;
   border: 3px solid #f26419;
   border-radius: 24px;
   box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.4);

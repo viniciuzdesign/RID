@@ -95,7 +95,7 @@ pub fn FormLancamento(
         }
     };
 
-    // Chave inserida pelo QR Code (manual e edição): não altera a cidade.
+    // Chave inserida pela câmera (QR Code ou código de barras): não altera a cidade.
     let aplicar_chave_lida = move |analise: Analise| {
         chave_s.set(analise.chave.clone());
         buscando_cidade.set(true);
@@ -289,7 +289,7 @@ pub fn FormLancamento(
                                 class="botao secundario"
                                 on:click=move |_| ler_qr()
                             >
-                                "Ler chave pelo QR Code"
+                                "Ler chave pela câmera"
                             </button>
                         }
                             .into_any()

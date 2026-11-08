@@ -280,7 +280,7 @@ def main():
 
     passo("7. Ler chave pelo QR Code na edição e cancelar")
     p.t('item(0)', 3)
-    p.t('clicar("Ler chave pelo QR Code")', 6)
+    p.t('clicar("Ler chave pela câmera")', 6)
     tocar_texto_nativo("While using the app")
     time.sleep(6)
     tirar_print("07a-camera-na-edicao")
