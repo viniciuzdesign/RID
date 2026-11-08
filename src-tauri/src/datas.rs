@@ -77,26 +77,6 @@ pub fn inicio_semana(iso: &str) -> Option<String> {
     Some(formatar(a, m, d))
 }
 
-/// Dia da semana: 0 = segunda … 6 = domingo.
-pub fn dia_semana(iso: &str) -> Option<u32> {
-    let (a, m, d) = ler(iso)?;
-    Some((para_dias(a, m, d) + 3).rem_euclid(7) as u32)
-}
-
-/// Abreviação do dia da semana em português.
-pub fn dia_semana_curto(iso: &str) -> &'static str {
-    match dia_semana(iso) {
-        Some(0) => "seg",
-        Some(1) => "ter",
-        Some(2) => "qua",
-        Some(3) => "qui",
-        Some(4) => "sex",
-        Some(5) => "sáb",
-        Some(6) => "dom",
-        _ => "",
-    }
-}
-
 /// "2026-11-07" → "07/11/2026"
 pub fn br(iso: &str) -> String {
     match ler(iso) {
@@ -143,13 +123,6 @@ mod testes {
         assert_eq!(inicio_semana("2026-11-08").unwrap(), "2026-11-02"); // domingo
         assert_eq!(inicio_semana("2026-11-09").unwrap(), "2026-11-09"); // segunda
         assert_eq!(inicio_semana("2027-01-01").unwrap(), "2026-12-28"); // sexta
-    }
-
-    #[test]
-    fn dias_da_semana() {
-        assert_eq!(dia_semana_curto("2026-11-07"), "sáb");
-        assert_eq!(dia_semana_curto("2026-11-09"), "seg");
-        assert_eq!(dia_semana_curto("2026-11-08"), "dom");
     }
 
     #[test]
