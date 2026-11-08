@@ -47,11 +47,11 @@ Guardar no celular a chave de acesso (44 caracteres) dos cupons fiscais (NFC-e) 
 
 ### Arquivamento
 - Manual, sempre por iniciativa do usuário (o app não pergunta após exportar).
-- Em lote por período (só pendentes do período).
+- Em lote por período (só pendentes do período), com confirmação de quantidade e soma. Início sugerido: pendente mais antigo.
 - Aba "Arquivados": consultar, editar, excluir e desarquivar (um ou o lote de um período).
 
 ### Exportação
-- Usuário escolhe o período; texto copiado para a área de transferência.
+- Usuário escolhe o período (início sugerido: pendente mais antigo; fim: hoje); texto copiado para a área de transferência e mostrado como prévia, com aviso de quantidade e total.
 - Somente lançamentos NÃO arquivados (arquivados precisam ser desarquivados antes).
 - Cidade em MAIÚSCULAS. Sem título no topo. Modelo exato:
 
@@ -74,9 +74,10 @@ Total: R$ 60,50
   - Tabela `config(chave, valor)`: chaves `nome`, `cpf`, `pix`.
   - Tabela `lancamentos(id, chave, data 'AAAA-MM-DD', cidade, valor_centavos, arquivado 0/1, criado_em)`.
 - Módulos do núcleo: `chave.rs` (extração/DV, com testes), `valor.rs` (centavos, com testes), `cpf.rs` (com testes), `cidade.rs` (HTTP com reqwest + rustls), `lib.rs` (comandos Tauri).
-- Comandos: `obter_config`, `salvar_config`, `analisar_qrcode`, `verificar_chave`, `buscar_cidade`, `criar_lancamento`, `atualizar_lancamento`, `obter_lancamento`, `excluir_lancamento`, `resumo_periodo`, `excluir_periodo`, `listar_pendentes`.
+- Comandos: `obter_config`, `salvar_config`, `analisar_qrcode`, `verificar_chave`, `buscar_cidade`, `criar_lancamento`, `atualizar_lancamento`, `obter_lancamento`, `excluir_lancamento`, `resumo_periodo`, `excluir_periodo`, `arquivar_periodo`, `desarquivar_periodo`, `definir_arquivado`, `listar_arquivados`, `exportar`, `listar_pendentes`.
+- `relatorio.rs` monta o texto exato do modelo (com testes); `exportar` copia via `tauri-plugin-clipboard-manager` no núcleo Rust (`app.clipboard().write_text`).
 - `src-tauri/src/datas.rs` e `chave.rs` são compartilhados com a interface via `#[path]` em `src/main.rs`.
-- Telas (`src/telas/`): `pendentes.rs` (semanas), `novo.rs` (QR), `manual.rs`, `editar.rs`, `formulario.rs` (formulário compartilhado), `menu.rs`, `excluir_periodo.rs`, `configuracoes.rs`. Navegação por enum `Tela` em `src/app.rs`. Diálogos (OK / confirmar) em `src/dialogo.rs`; moldura da câmera em `src/leitor.rs`.
+- Telas (`src/telas/`): `pendentes.rs` (semanas), `novo.rs` (QR), `manual.rs`, `editar.rs`, `formulario.rs` (formulário compartilhado; botão Desarquivar quando arquivado), `arquivados.rs`, `periodo.rs` (exportar, arquivar, desarquivar e excluir por período — `Acao`), `menu.rs`, `configuracoes.rs`. Navegação por enum `Tela` em `src/app.rs`. Diálogos (OK / confirmar) em `src/dialogo.rs`; moldura da câmera em `src/leitor.rs`.
 - Formulários usam `novalidate` (a validação é do app, com mensagens em português).
 - QR Code: plugin `tauri-plugin-barcode-scanner` (só mobile), modo `windowed: true` (câmera atrás da WebView transparente; CSS em `.escaneando`). Permissão em `src-tauri/capabilities/mobile.json`.
 
@@ -93,15 +94,15 @@ Total: R$ 60,50
 - Testes de unidade do núcleo: `cpf.rs`, `chave.rs` e `valor.rs` não dependem de crates e podem ser testados com `rustc --edition 2021 --test <arquivo>`.
 
 ## Teste automático no emulador
-- Branch `diagnostico` + `.github/workflows/diagnostico.yml`: compila o APK x86_64 **depurável**, sobe um emulador Android 15 e executa `ci/teste.py`, que controla a WebView pelo protocolo de depuração do Chrome (uma única conexão; `suppress_origin=True`). Cobre configurações, manual, data futura, chave com cidade automática, repetida, edição, câmera na edição, exclusão e exclusão por período. Imprime o texto da tela, prints (base64 gzip entre `PRINT_INICIO`/`PRINT_FIM`) e erros do log.
+- Branch `diagnostico` + `.github/workflows/diagnostico.yml`: compila o APK x86_64 **depurável**, sobe um emulador Android 15 e executa `ci/teste.py`, que controla a WebView pelo protocolo de depuração do Chrome (uma única conexão; `suppress_origin=True`). Cobre configurações, manual, data futura, chave com cidade automática, repetida, edição, câmera na edição, exportação, arquivar/desarquivar (individual e por período), exclusão e exclusão por período. Imprime o texto da tela, prints (base64 gzip entre `PRINT_INICIO`/`PRINT_FIM`) e erros do log.
 - O emulador fica nos EUA: o IBGE não responde de lá (o acento da cidade só é testável no Brasil).
 - Para validar uma mudança antes de liberar ao usuário: fazer push dela na branch `diagnostico`.
 
-## Estado atual (versão 0.4.0)
+## Estado atual (versão 0.5.0)
 - [x] Etapa 1 — Esqueleto Tauri + Leptos e build automático (testado no celular).
 - [x] Etapa 2 — Banco SQLite e Configurações (testado no celular).
 - [x] Etapa 3 — Lançamento por QR Code (testado no celular com cupom real na 0.3.2).
-- [~] Etapa 4 — Semanas com acumulados, editar, excluir, excluir por período, data editável, manual com chave opcional, QR na edição. Validado no emulador; **falta teste no celular**.
-- [ ] Etapa 5 — Arquivar em lote por período; aba Arquivados (editar, excluir, desarquivar).
-- [ ] Etapa 6 — Exportação para a área de transferência no modelo acima (usar `tauri-plugin-clipboard-manager`).
+- [x] Etapa 4 — Semanas, edição, exclusões, data editável, manual com chave opcional, QR na edição (testado no celular na 0.4.0).
+- [~] Etapa 5 — Arquivar por período; aba Arquivados; desarquivar individual e por período. Validado no emulador; **falta teste no celular**.
+- [~] Etapa 6 — Exportação para a área de transferência no modelo exato. Validado no emulador (texto); **falta confirmar a colagem no WhatsApp**.
 - [ ] Etapa 7 — Testes no celular e ajustes finais.
