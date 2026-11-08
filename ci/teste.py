@@ -139,8 +139,37 @@ def main():
     pid = adb("shell", "pidof", PKG).strip()
     print("PID", pid)
 
+    def ciclo_de_vida():
+        for linha in adb("logcat", "-d", "-v", "time").splitlines():
+            if PKG in linha and any(k in linha for k in ("ActivityTaskManager", "ActivityManager", "wm_", "Displayed")):
+                print("   ", linha[:200])
+
+    passo("Ciclo de vida da tela na abertura")
+    ciclo_de_vida()
+    print(adb("shell", "dumpsys", "activity", "activities").count(PKG + "/.MainActivity"), "referências à MainActivity")
+    erro_inicial = None
+
     p = Pagina()
-    p.conectar()
+    try:
+        p.conectar()
+        p.js(AJUDANTES)
+        erro_inicial = p.js("document.querySelector('.erro') ? document.querySelector('.erro').innerText : ''")
+    except SystemExit:
+        erro_inicial = "sem página no depurador"
+    if erro_inicial:
+        print("FALHA NA ABERTURA:", erro_inicial)
+        print("Reabrindo o app uma vez...")
+        adb("shell", "am", "force-stop", PKG)
+        time.sleep(2)
+        adb("logcat", "-c")
+        adb("shell", "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1")
+        time.sleep(20)
+        pid = adb("shell", "pidof", PKG).strip()
+        ciclo_de_vida()
+        p = Pagina()
+        p.conectar()
+        p.js(AJUDANTES)
+        print("Erro depois de reabrir:", repr(p.js("document.querySelector('.erro') ? document.querySelector('.erro').innerText : ''")))
 
     passo("1. Configurações")
     p.t('preencher("Nome completo", "Teste Diagnostico")', 0.3)
