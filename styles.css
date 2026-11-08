@@ -17,6 +17,7 @@
   --laranja-suave: #ffe9dc;
   --laranja-texto: #b13f06;
   --perigo: #c22a1f;
+  --sobre-perigo: #ffffff;
   --sucesso: #1b7a45;
   --sombra-folha: 0 -8px 30px rgba(31, 26, 23, 0.18);
   --raio: 16px;
@@ -45,6 +46,7 @@
   --laranja-suave: #3b2415;
   --laranja-texto: #ffa06a;
   --perigo: #ff6b5e;
+  --sobre-perigo: #2a0603;
   --sucesso: #5fd394;
   --sombra-folha: 0 -8px 30px rgba(0, 0, 0, 0.5);
 }
@@ -66,6 +68,7 @@
     --laranja-suave: #3b2415;
     --laranja-texto: #ffa06a;
     --perigo: #ff6b5e;
+  --sobre-perigo: #2a0603;
     --sucesso: #5fd394;
     --sombra-folha: 0 -8px 30px rgba(0, 0, 0, 0.5);
   }
@@ -389,7 +392,7 @@ button.opcao span {
 
 .botao.perigo {
   background: var(--perigo);
-  color: #fff;
+  color: var(--sobre-perigo);
 }
 
 :focus-visible {
