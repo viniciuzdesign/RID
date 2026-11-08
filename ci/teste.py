@@ -132,6 +132,9 @@ def tocar_texto_nativo(texto):
 def main():
     apk = sys.argv[1]
     passo("Instalando")
+    # A Play Store atualiza a WebView em segundo plano num emulador recém-ligado e derruba a página.
+    print("Play Store:", adb("shell", "pm", "disable-user", "--user", "0", "com.android.vending").strip())
+    time.sleep(5)
     print(adb("install", "-r", apk))
     adb("logcat", "-c")
     adb("shell", "monkey", "-p", PKG, "-c", "android.intent.category.LAUNCHER", "1")
@@ -253,7 +256,7 @@ def main():
     p.t('clicar("Cancelar")', 2)
     p.t('clicar("Opções")', 2)
     p.t('clicar("Configurações")', 2)
-    p.t('clicar("Igual ao celular")', 2)
+    p.t('clicar("Automático")', 2)
     p.t('clicar("Voltar")', 3)
     p.t('item(1)', 3)
     tirar_print("v7-edicao-claro")

@@ -115,7 +115,7 @@ pub fn Configuracoes(config: RwSignal<Config>, tela: RwSignal<Tela>) -> impl Int
             <section class="grupo-tema">
                 <h3>"Aparência"</h3>
                 <div class="segmentos" role="group" aria-label="Aparência">
-                    {opcao("auto", "Igual ao celular")}
+                    {opcao("auto", "Automático")}
                     {opcao("claro", "Claro")}
                     {opcao("escuro", "Escuro")}
                 </div>

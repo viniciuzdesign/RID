@@ -55,12 +55,14 @@ pub fn CamadaDialogos() -> impl IntoView {
     move || {
         dialogos.0.get().map(|d| {
             let botoes = match d.confirmar {
-                Some((rotulo, acao)) => view! {
+                Some((rotulo, acao)) => {
+                    let classe = if rotulo.starts_with("Excluir") { "botao perigo" } else { "botao" };
+                    view! {
                     <button class="botao secundario" on:click=move |_| dialogos.fechar()>
                         "Cancelar"
                     </button>
                     <button
-                        class="botao"
+                        class=classe
                         on:click=move |_| {
                             dialogos.fechar();
                             acao();
@@ -68,8 +70,9 @@ pub fn CamadaDialogos() -> impl IntoView {
                     >
                         {rotulo}
                     </button>
+                    }
+                    .into_any()
                 }
-                .into_any(),
                 None => view! {
                     <button class="botao" on:click=move |_| dialogos.fechar()>
                         "OK"

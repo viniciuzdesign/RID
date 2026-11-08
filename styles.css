@@ -412,10 +412,12 @@ button.opcao span {
 
 .rodape .botao {
   min-height: 58px;
+  white-space: nowrap;
+  padding: 12px 14px;
 }
 
 .rodape .botao:first-child {
-  flex: 1.7;
+  flex: 1.6;
 }
 
 .rodape .botao:last-child {

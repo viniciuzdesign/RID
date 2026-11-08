@@ -276,7 +276,7 @@ pub fn FormLancamento(
                                 "Chave NF-e (opcional)"
                                 <textarea
                                     class="campo-chave"
-                                    rows="2"
+                                    rows="3"
                                     inputmode="numeric"
                                     autocapitalize="characters"
                                     placeholder="44 números impressos no cupom"
