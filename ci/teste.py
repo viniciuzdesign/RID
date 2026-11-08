@@ -68,6 +68,8 @@ class Pagina:
                 adb("forward", "tcp:9222", "localabstract:" + sockets[-1])
                 try:
                     paginas = json.load(urllib.request.urlopen("http://127.0.0.1:9222/json", timeout=5))
+                    if tentativa % 10 == 0:
+                        print("páginas no depurador:", json.dumps(paginas)[:400])
                     url = next(p["webSocketDebuggerUrl"] for p in paginas
                                if p.get("type") == "page" and "webSocketDebuggerUrl" in p)
                     self.ws = websocket.create_connection(url, timeout=30, suppress_origin=True)
@@ -76,6 +78,13 @@ class Pagina:
                 except Exception as e:  # noqa: BLE001
                     print(f"aguardando depurador ({tentativa}): {e!r}")
             time.sleep(2)
+        tirar_print("falha-sem-pagina")
+        print("processo:", adb("shell", "pidof", PKG) or "(app fechado)")
+        for linha in adb("logcat", "-d", "-v", "threadtime").splitlines():
+            if (" E " in linha or " F " in linha or "AndroidRuntime" in linha) and \
+                    ("rid" in linha.lower() or "AndroidRuntime" in linha or "Tauri" in linha or "chromium" in linha):
+                print(linha[:240])
+        print(adb("logcat", "-d", "-b", "crash"))
         raise SystemExit("Depurador da WebView não encontrado")
 
     def js(self, expressao):
