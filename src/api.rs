@@ -21,6 +21,17 @@ pub struct Config {
     pub nome: String,
     pub cpf: String,
     pub pix: String,
+    #[serde(default)]
+    pub tema: String,
+}
+
+#[derive(Serialize)]
+struct ArgsTema {
+    tema: String,
+}
+
+pub async fn salvar_tema(tema: String) -> Result<(), String> {
+    chamar("salvar_tema", &ArgsTema { tema }).await
 }
 
 #[derive(Serialize)]

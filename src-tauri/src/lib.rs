@@ -20,6 +20,9 @@ pub struct Config {
     nome: String,
     cpf: String,
     pix: String,
+    /// "auto", "claro" ou "escuro"
+    #[serde(default)]
+    tema: String,
 }
 
 fn erro_banco(e: rusqlite::Error) -> String {
@@ -33,7 +36,17 @@ fn obter_config(estado: State<Estado>) -> Result<Config, String> {
         nome: db::ler_config(&conn, "nome").map_err(erro_banco)?,
         cpf: db::ler_config(&conn, "cpf").map_err(erro_banco)?,
         pix: db::ler_config(&conn, "pix").map_err(erro_banco)?,
+        tema: db::ler_config(&conn, "tema").map_err(erro_banco)?,
     })
+}
+
+#[tauri::command]
+fn salvar_tema(estado: State<Estado>, tema: String) -> Result<(), String> {
+    if !matches!(tema.as_str(), "auto" | "claro" | "escuro") {
+        return Err("Tema inválido.".into());
+    }
+    let conn = banco(&estado)?;
+    db::gravar_config(&conn, "tema", &tema).map_err(erro_banco)
 }
 
 #[tauri::command]
@@ -55,6 +68,7 @@ fn salvar_config(estado: State<Estado>, config: Config) -> Result<Config, String
         nome,
         cpf: cpf::formatar(&config.cpf),
         pix,
+        tema: config.tema.clone(),
     };
 
     let mut conn = estado.db.lock().map_err(|_| "Banco indisponível".to_string())?;
@@ -267,6 +281,7 @@ fn exportar(
             nome: db::ler_config(&conn, "nome").map_err(erro_banco)?,
             cpf: db::ler_config(&conn, "cpf").map_err(erro_banco)?,
             pix: db::ler_config(&conn, "pix").map_err(erro_banco)?,
+            tema: String::new(),
         };
         let itens = db::pendentes_do_periodo(&conn, &inicio, &fim).map_err(erro_banco)?;
         (config, itens)
@@ -322,6 +337,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             obter_config,
             salvar_config,
+            salvar_tema,
             analisar_qrcode,
             verificar_chave,
             buscar_cidade,

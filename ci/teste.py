@@ -22,7 +22,8 @@ window.__t = {
   botoes() { const d = document.querySelector('.dialogo'); return [...(d || document).querySelectorAll('button')]; },
   clicar(texto) {
     const b = this.botoes();
-    const el = b.find(e => e.innerText.trim() === texto) || b.find(e => e.innerText.includes(texto));
+    const el = b.find(e => e.innerText.trim() === texto) || b.find(e => e.getAttribute('aria-label') === texto)
+      || b.find(e => e.innerText.includes(texto));
     if (!el) return 'NAO ACHOU botão: ' + texto;
     el.click(); return 'clicou: ' + texto;
   },
@@ -206,6 +207,29 @@ def main():
     p.t('clicar("Salvar")', 3)
     p.tela()
 
+    passo("6b. Visual: modo claro e modo escuro")
+    tirar_print("v1-inicio-claro")
+    p.t('clicar("Opções")', 2)
+    tirar_print("v2-menu-claro")
+    p.t('clicar("Configurações")', 2)
+    p.t('clicar("Escuro")', 2)
+    tirar_print("v3-config-escuro")
+    p.t('clicar("Voltar")', 3)
+    tirar_print("v4-inicio-escuro")
+    p.t('item(1)', 3)
+    tirar_print("v5-edicao-escuro")
+    p.t('clicar("Excluir lançamento")', 2)
+    tirar_print("v6-folha-escuro")
+    p.t('clicar("Cancelar")', 1)
+    p.t('clicar("Cancelar")', 2)
+    p.t('clicar("Opções")', 2)
+    p.t('clicar("Configurações")', 2)
+    p.t('clicar("Igual ao celular")', 2)
+    p.t('clicar("Voltar")', 3)
+    p.t('item(1)', 3)
+    tirar_print("v7-edicao-claro")
+    p.t('clicar("Cancelar")', 2)
+
     passo("7. Ler chave pelo QR Code na edição e cancelar")
     p.t('item(0)', 3)
     p.t('clicar("Ler chave pelo QR Code")', 6)
@@ -217,7 +241,7 @@ def main():
     p.t('clicar("Cancelar")', 2)
 
     passo("8. Exportar relatório (início = pendente mais antigo)")
-    p.t('clicar("⋮")', 2)
+    p.t('clicar("Opções")', 2)
     p.t('clicar("Exportar relatório")', 3)
     print("Data inicial sugerida:", p.js('window.__t.valor("Data inicial")'))
     p.t('clicar("Copiar relatório")', 3)
@@ -229,7 +253,7 @@ def main():
     p.t('clicar("Voltar")', 2)
 
     passo("9. Arquivar por período")
-    p.t('clicar("⋮")', 2)
+    p.t('clicar("Opções")', 2)
     p.t('clicar("Arquivar por período")', 3)
     p.t('clicar("Continuar")', 3)
     p.tela()
@@ -237,7 +261,7 @@ def main():
     p.tela()
 
     passo("10. Exportar sem pendentes deve avisar")
-    p.t('clicar("⋮")', 2)
+    p.t('clicar("Opções")', 2)
     p.t('clicar("Exportar relatório")', 3)
     p.t('preencher("Data inicial", "2026-01-01")', 0.3)
     p.t('clicar("Copiar relatório")', 3)
@@ -246,7 +270,7 @@ def main():
     p.t('clicar("Voltar")', 2)
 
     passo("11. Aba Arquivados e desarquivar um lançamento")
-    p.t('clicar("⋮")', 2)
+    p.t('clicar("Opções")', 2)
     p.t('clicar("Ver arquivados")', 3)
     p.tela()
     tirar_print("11a-arquivados")
@@ -257,12 +281,12 @@ def main():
 
     passo("12. Arquivar de novo e desarquivar por período")
     p.t('clicar("Voltar")', 2)
-    p.t('clicar("⋮")', 2)
+    p.t('clicar("Opções")', 2)
     p.t('clicar("Arquivar por período")', 3)
     p.t('preencher("Data inicial", "2026-01-01")', 0.3)
     p.t('clicar("Continuar")', 3)
     p.t('clicar("Arquivar")', 3)
-    p.t('clicar("⋮")', 2)
+    p.t('clicar("Opções")', 2)
     p.t('clicar("Ver arquivados")', 3)
     p.t('clicar("Desarquivar período")', 3)
     p.t('preencher("Data inicial", "2026-01-01")', 0.3)
@@ -280,8 +304,8 @@ def main():
     p.tela()
 
     passo("14. Excluir por período")
-    p.t('clicar("⋮")', 2)
-    p.t('clicar("Excluir lançamentos por período")', 2)
+    p.t('clicar("Opções")', 2)
+    p.t('clicar("Excluir por período")', 2)
     p.t('preencher("Data inicial", "2026-01-01")', 0.3)
     p.t('clicar("Continuar")', 3)
     p.tela()
