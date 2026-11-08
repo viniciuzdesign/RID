@@ -57,7 +57,7 @@ pub fn Pendentes(tela: RwSignal<Tela>, aviso: RwSignal<Option<String>>) -> impl 
                 Some(Err(e)) => view! { <p class="erro">{e}</p> }.into_any(),
                 Some(Ok(itens)) if itens.is_empty() => view! {
                     <section class="vazio">
-                        <p>"Leia o QR Code ou o código de barras do cupom para guardar a chave e o valor do almoço."</p>
+                        <p>"Leia o QR Code ou o código de barras do cupom para guardar a chave e o valor da despesa."</p>
                         <p class="discreto">"Sem código para ler? Use “Manual”."</p>
                     </section>
                 }
